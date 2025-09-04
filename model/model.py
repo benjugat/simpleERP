@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table, Numeric
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -9,14 +9,14 @@ class Product(Base):
     product_id = Column(Integer, primary_key=True)
     name = Column(String)
     description = Column(String)
-    sale_price = Column(Integer)
+    sale_price = Column(Numeric(10, 2), nullable=False)
     manufactured_items  = relationship("ManufacturedItem", back_populates="product", cascade="all, delete-orphan")  
     materials = relationship("ProductMaterial", back_populates="product", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Product(product_id={self.product_id}, name={self.name}, sale_price={self.sale_price})>"
 
-class ProductMaterial(Basae):
+class ProductMaterial(Base):
     __tablename__ = 'product_materials'
     
     product_material_id = Column(Integer, primary_key=True)
@@ -37,7 +37,7 @@ class ManufacturedItem(Base):
     item_id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
     description = Column(String)
-    cost_price = Column(Integer)
+    cost_price = Column(Numeric(10, 2), nullable=False)
     sale_id = Column(Integer, ForeignKey('sales.sale_id'))
     product = relationship("Product", back_populates="manufactured_items")
 
@@ -67,7 +67,7 @@ class MaterialPurchase(Base):
     material_id = Column(Integer, ForeignKey('materials.material_id'), nullable=False)
     date  = Column(Date)
     quantity = Column(Integer)
-    price = Column(Integer)
+    price = Column(Numeric(10, 2), nullable=False)
 
     material = relationship("Material", back_populates="purchases")
 
@@ -93,7 +93,7 @@ class Sale(Base):
     sale_id = Column(Integer, primary_key=True)
     items_id = relationship("ManufacturedItem", back_populates="manufactured", cascade="all, delete-orphan")
     date = Column(Date)
-    price = Column(Integer)
+    price = Column(Numeric(10, 2), nullable=False)
     dealer_id = Column(Integer, ForeignKey('dealers.dealer_id'), nullable=False)
 
     dealer = relationship("Dealer", back_populates="sales")

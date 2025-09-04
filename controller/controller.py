@@ -1,4 +1,4 @@
-from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale
+from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial
 
 
 class ProductController:
@@ -86,7 +86,7 @@ class MaterialController:
         if not material:
             return None
         new_purchase = MaterialPurchase(material_id=material_id, quantity=quantity, price=price, date=date)
-        update_stock(self, material_id, quantity)
+        self.update_stock(material_id, quantity)
         self.session.add(new_purchase)
         self.session.commit()
         return new_purchase
