@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Product - SimpleERP</title>
+    <title>Config Product - SimpleERP</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -23,40 +23,38 @@
         .btn-primary:hover {
             background-color: #0056b3;
         }
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="text-center mb-4">
-            <h1 class="display-4">Product Management</h1>
-            <p class="lead">Add a product</p>
-        </div>
-
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header text-center bg-primary text-white">
-                        <h5>Add a Product</h5>
+                        <h5>Config Product</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST">
+                        <form method="POST" action="/product/{{ product.product_id }}/config">
+                            {% for material in show_materials %}
                             <div class="mb-3">
-                                <label for="name" class="form-label">Product name</label>
-                                <input type="text" class="form-control" id="name" name="name" placeholder="Ej: Laptop" required>
+                                <label for="name" class="form-label">{{material.name}}</label>
+                                <input type="number" class="form-control" id="M{{material.material_id}}" name="{{material.material_id}}" step="1" value="{{material.quantity}}" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Ej:  High-end laptop required"></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="price" class="form-label">Price</label>
-                                <input type="number" class="form-control" id="price" name="price" step="0.01" placeholder="Ej: 1299.99" required>
-                            </div>
+                            
+                            {% endfor %}
                             <div class="d-flex justify-content-between">
                                 <a href="/products" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Add Product</button>
+                                <button type="submit" class="btn btn-primary">Save changes</button>
                             </div>
                         </form>
+                        
                     </div>
                 </div>
             </div>
@@ -66,4 +64,5 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

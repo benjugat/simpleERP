@@ -45,7 +45,20 @@ class ProductController:
         self.session.add(new_association)
         self.session.commit()
         return new_association
+    
+    def get_all_associated_materials(self, product_id):
+        return self.session.query(ProductMaterial).filter_by(product_id=product_id).all()
 
+    def get_associated_material(self, product_id, material_id):
+        return self.session.query(ProductMaterial).filter_by(product_id=product_id).filter_by(material_id=material_id).first()
+
+    def delete_associated_materials(self, product_id, material_id):
+        material = self.get_associated_material(product_id, material_id)
+        if not material:
+            return False
+        self.session.delete(material)
+        self.session.commit()
+        return True
 
 
 class MaterialController:
@@ -140,3 +153,16 @@ class DealerController:
         self.session.add(new_sale)
         self.session.commit()
         return new_sale
+    
+    def get_dealer_sales(self, dealer_id):
+        return self.session.query(Sale).filter_by(dealer_id=dealer_id).all()
+    
+class SaleController:
+    def __init__(self, session):
+        self.session = session
+
+    def get_sale(self, sale_id):
+        return self.session.query(Sale).filter_by(sale_id=sale_id).first()
+    
+    def get_all_sales(self):
+        return self.session.query(Sale).all()

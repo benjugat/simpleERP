@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 from model.model import Product, Base
-from controller.controller import ProductController, MaterialController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController
 
 app = Flask(__name__)
 
@@ -13,6 +13,9 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+#####################################
+#   PRODUCT MANAGEMENT              #
+#####################################
 
 @app.route('/products')
 def products():
@@ -81,6 +84,60 @@ def edit_product(product_id):
     return render_template('edit_product.html', product=product)
 
 
+@app.route('/product/<int:product_id>/config', methods=['GET', 'POST'])
+def config_product(product_id):
+
+    
+    # solucion rapida, disasociar todo, asociar de nuevo?
+    # otra solucion disasociar si es 0
+
+    product_controller = ProductController(session)
+    product = product_controller.get_product(product_id)
+
+    if not product:
+        return "Product not found", 404
+    
+    material_controller = MaterialController(session)
+    materials = material_controller.get_all_materials()
+
+    show_associated_materials =[]
+
+    for material in materials:
+        a = {
+            'material_id': material.material_id,
+            'name' : material.name,
+            'quantity' : 0
+        }
+        asso = product_controller.get_associated_material(product_id, material.material_id)
+        if asso and asso.quantity != 0:
+            a['quantity'] = asso.quantity
+        show_associated_materials.append(a)
+   
+
+    if request.method == 'POST':
+        r = request
+        for mat_id in r.form:
+            quantity=r.form[mat_id]
+            print(quantity)
+            if int(quantity) == 0:
+                if product_controller.delete_associated_materials(product_id, mat_id):
+                    print("Material dissasociated")
+            else:
+                mat = product_controller.associate_material(product_id, mat_id, quantity)
+                if mat:
+                    print(f"Material Associated: {mat}")
+                else:
+                    print("Error ar associating materials to a product")
+
+        return redirect(url_for('products'))
+    
+    return render_template('config_product.html', product=product, show_materials=show_associated_materials)
+
+
+#####################################
+#   STOCK MANAGEMENT                #
+#####################################
+
 @app.route('/materials')
 def materials():
     material_controller = MaterialController(session)
@@ -106,6 +163,156 @@ def add_material():
     
     return render_template('add_material.html')
 
+@app.route('/material/<int:material_id>/delete', methods=['GET'])
+def delete_material(material_id):
+    material_controller = MaterialController(session)
+    if material_controller.delete_material(material_id):
+        print("Material deleted.")
+    else:
+        print("Material not found.")
+    
+    return redirect(url_for('materials'))
+
+@app.route('/material/<int:material_id>/edit', methods=['GET', 'POST'])
+def edit_material(material_id):
+    material_controller = MaterialController(session)
+    material = material_controller.get_material(material_id)
+    
+    if not material:
+        return "Material not found", 404
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        stock = request.form['stock']
+        
+        kwargs = {
+            'name': name,
+            'description': description,
+            'stock': stock
+        }
+        
+        updated_material = material_controller.update_material(material_id, **kwargs)
+        if updated_material:
+            print(f"Material updated: {updated_material}")
+        else:
+            print("Material not found.")
+        
+        return redirect(url_for('materials'))
+    
+    return render_template('edit_material.html', material=material)
+
+
+
+#####################################
+#   DEALER MANAGEMENT               #
+#####################################
+
+@app.route('/dealers')
+def dealers():
+    dealer_controller = DealerController(session)
+    dealers = dealer_controller.get_all_dealers()
+    
+    return render_template('dealers.html', dealers=dealers)
+
+
+@app.route('/dealer/add', methods=['GET', 'POST'])
+def add_dealer():
+    if request.method == 'POST':
+        
+        # Obtener datos del formulario
+        name = request.form['name']
+        
+        dealer_controller = DealerController(session)
+        dealer = dealer_controller.add_dealer(name)
+        print(f"Dealer added: {dealer}")
+        
+        # Redirigir a la página principal
+        return redirect(url_for('dealers'))
+    
+    return render_template('add_dealer.html')
+
+@app.route('/dealer/<int:dealer_id>/delete', methods=['GET'])
+def delete_dealer(dealer_id):
+    dealer_controller = DealerController(session)
+    if dealer_controller.delete_dealer(dealer_id):
+        print("Dealer deleted.")
+    else:
+        print("Dealer not found.")
+        
+    return redirect(url_for('dealers'))
+
+@app.route('/dealer/<int:dealer_id>/edit', methods=['GET', 'POST'])
+def edit_dealer(dealer_id):
+    dealer_controller = DealerController(session)
+    dealer = dealer_controller.get_dealer(dealer_id)
+    if not dealer:
+        return "Dealer not found", 404
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        
+        kwargs = {
+            'name': name
+        }
+        
+        updated_dealer = dealer_controller.update_dealer(dealer_id, **kwargs)
+        if updated_dealer:
+            print(f"Dealer updated: {updated_dealer}")
+        else:
+            print("Dealer not found.")
+        
+        return redirect(url_for('dealers'))
+    
+    return render_template('edit_dealer.html', dealer=dealer)
+
+
+#####################################
+#   SALES                           #
+#####################################
+@app.route('/sales', defaults={'dealer_id': None})
+@app.route('/dealer/<int:dealer_id>/sales')
+def sales(dealer_id):
+    if dealer_id:
+        dealer_controller = DealerController(session)
+        dealer = dealer_controller.get_dealer(dealer_id)
+        if not dealer:
+            return "Dealer not found", 404
+        sales = dealer_controller.get_dealer_sales(dealer_id)
+
+    else:
+        sale_controller = SaleController(session)
+        sales = sale_controller.get_all_sales()
+
+    return render_template('sales.html', sales=sales)
+    
+@app.route('/dealer/<int:dealer_id>/sale/add', methods=['GET', 'POST'])
+def add_sale_dealer(dealer_id):
+    dealer_controller = DealerController(session)
+    dealer = dealer_controller.get_dealer(dealer_id)
+    if not dealer:
+        return "Dealer not found", 404
+    
+    if request.method == 'POST':
+        
+        # Obtener datos del formulario
+        item_id = request.form['items_id']
+        # meter checkbox con todos los manufactured itemss
+        #partial fix:
+        items_id = [item_id]
+        date = request.form['date']
+        price =  request.form['price']
+        
+        
+        sale = dealer_controller.record_sale(items_id,date,price,dealer_id)
+        print(f"Sale added to dealer: {sale}")
+        
+        # Redirigir a la página principal
+        return redirect(url_for('sales', dealer_id=dealer_id))
+    
+    return render_template('add_sale_dealer.html', dealer=dealer)
+
+
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///example.db')
@@ -114,196 +321,3 @@ if __name__ == '__main__':
     session = Session()
 
     app.run(debug=True)
-
-'''
-def main_menu():
-    while True:
-        print("\n\n--- Main Menu ---");
-        print("1. Manage Products")
-        print("2. Manage Stock")
-        print("3. Manage Sales")
-        print("4. Exit")
-        
-        try:
-            choice = int(input("Seleccione una opción: "))
-        except ValueError:
-            print("Por favor, ingrese un número válido.")
-            continue
-
-
-        if choice == 1:
-            product_menu()
-        elif choice == 2:
-            stock_menu()
-        #elif choice == 3:
-        #    sales_menu()
-        elif choice == 4:
-            print("Saliendo del programa...")
-            break
-        else:
-            print("Opción no válida. Intente de nuevo.")
-
-def product_menu():
-    product_controller = ProductController(session)
-    while True:
-        print("\n--- Products ---")
-        products = product_controller.get_all_products()
-        for prod in products:
-            print(prod)
-
-        print("\n\n--- Product Management ---")
-        print("1. Add Product")
-        print("2. View All Products")
-        print("3. Update Product")
-        print("4. Delete Product")
-        print("5. Associate Material to Product")
-        print("6. Back to Main Menu")
-        
-        try:
-            choice = int(input("Seleccione una opción: "))
-        except ValueError:
-            print("Por favor, ingrese un número válido.")
-            continue
-
-        # 1. Add Product
-        if choice == 1:
-            name = input("Enter product name: ")
-            description = input("Enter product description: ")
-            sale_price = float(input("Enter sale price: "))
-            product = product_controller.add_product(name, description, sale_price)
-            print(f"Product added: {product}")
-
-        # 2. View All Products
-        elif choice == 2:
-            products = product_controller.get_all_products()
-            for prod in products:
-                print(prod)
-
-        # 3. Update Product
-        elif choice == 3:
-            product_id = int(input("Enter product ID to update: "))
-            name = input("Enter new name (leave blank to keep current): ")
-            description = input("Enter new description (leave blank to keep current): ")
-            sale_price_input = input("Enter new sale price (leave blank to keep current): ")
-            kwargs = {}
-            if name:
-                kwargs['name'] = name
-            if description:
-                kwargs['description'] = description
-            if sale_price_input:
-                kwargs['sale_price'] = float(sale_price_input)
-            updated_product = product_controller.update_product(product_id, **kwargs)
-            if updated_product:
-                print(f"Product updated: {updated_product}")
-            else:
-                print("Product not found.")
-        
-        # 4. Delete Product
-        elif choice == 4:
-            product_id = int(input("Enter product ID to delete: "))
-            if product_controller.delete_product(product_id):
-                print("Product deleted.")
-            else:
-                print("Product not found.")
-        
-        # 5. Associate Material to Product
-        elif choice == 5:
-            product_id = int(input("Enter product ID: "))
-            material_id = int(input("Enter material ID to associate: "))
-            quantity = int(input("Enter quantity of material: "))
-            association = product_controller.associate_material(product_id, material_id, quantity)
-            print(f"Material associated: {association}")
-
-
-        # 6. Back to menu
-        elif choice == 6:
-            break
-        else:
-            print("Opción no válida. Intente de nuevo.")
-
-
-def stock_menu():
-    material_controller = MaterialController(session)
-    while True:
-        print("\n--- Stock Management ---")
-        print("1. Add Material type")
-        print("2. View All Materials types")
-        print("3. Update Material type")
-        print("4. Delete Material")
-        print("5. Buy Material")
-        print("6. Back to Main Menu")
-        
-        try:
-            choice = int(input("Seleccione una opción: "))
-        except ValueError:
-            print("Por favor, ingrese un número válido.")
-            continue
-
-        # 1. Add Material
-        if choice == 1:
-            name = input("Enter material name: ")
-            description = input("Enter material description: ")
-            material = material_controller.add_material(name, description)
-            print(f"Material added: {material}")
-
-        # 2. View All Materials
-        elif choice == 2:
-            materials = material_controller.get_all_materials()
-            for mat in materials:
-                print(mat)
-
-        # 3. Update Material
-        elif choice == 3:
-            material_id = int(input("Enter material ID to update: "))
-            name = input("Enter new name (leave blank to keep current): ")
-            description = input("Enter new description (leave blank to keep current): ")
-            kwargs = {}
-            if name:
-                kwargs['name'] = name
-            if description:
-                kwargs['description'] = description
-            updated_material = material_controller.update_material(material_id, **kwargs)
-            if updated_material:
-                print(f"Material updated: {updated_material}")
-            else:
-                print("Material not found.")
-        
-        # 4. Delete Material
-        elif choice == 4:
-            material_id = int(input("Enter material ID to delete: "))
-            if material_controller.delete_material(material_id):
-                print("Material deleted.")
-            else:
-                print("Material not found.")
-
-        # 5. Buy Material
-        elif choice == 5:
-            material_id = int(input("Enter material ID to purchase: "))
-            quantity = int(input("Enter quantity to purchase: "))
-            price = float(input("Enter purchase price: "))
-            date_input = input("Enter purchase date (YYYY-MM-DD): ")
-            date = datetime.strptime(date_input, "%Y-%m-%d").date()
-            purchase = material_controller.purchase_material(material_id, quantity, price, date)
-            if purchase:
-                print(f"Material purchased: {purchase}")
-            else:
-                print("Material not found.")
-        
-        elif choice == 6:
-            break
-        else:
-            print("Opción no válida. Intente de nuevo.")
-
-
-if __name__ == "__main__":
-
-    # Database setup
-    engine = create_engine('sqlite:///example.db')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    main_menu()
-'''
-
-

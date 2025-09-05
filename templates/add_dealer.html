@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Material - SimpleERP</title>
+    <title>Add Dealer - SimpleERP</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -28,33 +28,24 @@
 <body>
     <div class="container">
         <div class="text-center mb-4">
-            <h1 class="display-4">Stock Management</h1>
-            <p class="lead">Add a Material</p>
+            <h1 class="display-4">Sales Management</h1>
+            <p class="lead">Register a Dealer</p>
         </div>
 
         <div class="row justify-content-center">
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header text-center bg-success text-white">
-                        <h5>Add a Material</h5>
+                        <h5>Register a Dealer</h5>
                     </div>
                     <div class="card-body">
                         <form method="POST">
                             <div class="mb-3">
-                                <label for="name" class="form-label">Material name</label>
+                                <label for="name" class="form-label">Dealer Name</label>
                                 <input type="text" class="form-control" id="name" name="name" placeholder="Ej: Screws" required>
                             </div>
-                            <div class="mb-3">
-                                <label for="description" class="form-label">Description</label>
-                                <textarea class="form-control" id="description" name="description" rows="3" placeholder="Ej:  Iron Screws"></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="stock" class="form-label">Stock</label>
-                                <input type="number" class="form-control" id="stock" name="stock" step="1" placeholder="Ej: 100" required>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <a href="/materials" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Add Material</button>
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary">Register dealer</button>
                             </div>
                         </form>
                     </div>
