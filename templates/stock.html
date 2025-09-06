@@ -41,19 +41,6 @@
         .btn-secondary:hover {
             background-color: #5a6268;
         }
-        .table-primary {
-            background-color: #007bff !important;
-            color: white;
-        }
-        .table-primary th {
-            color: white;
-        }
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(0, 123, 255, 0.1); /* Azul claro */
-        }
-        .table-striped tbody tr:nth-of-type(even) {
-            background-color: rgba(0, 123, 255, 0.05); /* Azul más claro */
-        }
     </style>
 </head>
 <body>
@@ -63,6 +50,7 @@
         </div>
         <div class="d-flex justify-content-end mb-4">
             <a href="/" class="btn btn-secondary">Back</a>
+            <a href="/material/purchases" class="btn btn-primary ms-2">View Purchases</a>
             <a href="/material/add" class="btn btn-success ms-2">Add new Material</a>
         </div>
 
@@ -70,7 +58,7 @@
             <table class="table table-striped table-bordered">
                 <thead class="table-primary">
                     <tr>
-                        <th>ID</th>
+                        <th>MaterialID</th>
                         <th>Name</th>
                         <th>Description</th>
                         <th>Stock</th>
@@ -85,6 +73,8 @@
                         <td>{{ material.description }}</td>
                         <td>{{ material.stock }}</td>
                         <td>
+                            <a href="/material/{{ material.material_id }}/purchase/" class="btn btn-primary btn-sm">View</a>
+                            <a href="/material/{{ material.material_id }}/purchase/add" class="btn btn-success btn-sm">Purchase</a>
                             <a href="/material/{{ material.material_id }}/edit" class="btn btn-warning btn-sm">Edit</a>
                             <a href="/material/{{ material.material_id }}/delete" class="btn btn-danger btn-sm">Delete</a>
                         </td>

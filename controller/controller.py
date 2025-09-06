@@ -5,8 +5,8 @@ class ProductController:
     def __init__(self, session):
         self.session = session
 
-    def add_product(self, name, description, sale_price):
-        new_product = Product(name=name, description=description, sale_price=sale_price)
+    def add_product(self, name, description, sale_price, minimum_price):
+        new_product = Product(name=name, description=description, sale_price=sale_price, minimum_price=minimum_price)
         self.session.add(new_product)
         self.session.commit()
         return new_product
@@ -34,11 +34,34 @@ class ProductController:
         self.session.commit()
         return True
     
-    def add_manufactured_item(self, product_id, description, cost_price, sale_id=None):
-        new_item = ManufacturedItem(product_id=product_id, description=description, cost_price=cost_price, sale_id=sale_id)
+    def add_manufactured_item(self, product_id, description, sale_id=None):
+        new_item = ManufacturedItem(product_id=product_id, description=description, sale_id=sale_id)
         self.session.add(new_item)
         self.session.commit()
         return new_item
+
+    def delete_manufactured_item(self, item_id):
+        item = self.session.query(ManufacturedItem).filter_by(item_id=item_id).first()
+        if not item:
+            return False
+        self.session.delete(item)
+        self.session.commit()
+        return True
+
+    def get_manufactured_item(self, item_id):
+        return self.session.query(ManufacturedItem).filter_by(item_id=item_id).first()
+
+    def update_manufactured_item(self, item_id, **kwargs):
+        item = self.get_manufactured_item(item_id)
+        if not item:
+            return None
+        for key, value in kwargs.items():
+            setattr(item, key, value)
+        self.session.commit()
+        return item
+
+    def get_all_manufactured_item(self, product_id):
+        return self.session.query(ManufacturedItem).filter_by(product_id=product_id).all()
 
     def associate_material(self, product_id, material_id, quantity):
         new_association = ProductMaterial(product_id=product_id, material_id=material_id, quantity=quantity)
@@ -94,6 +117,7 @@ class MaterialController:
         self.session.commit()
         return True
 
+
     def purchase_material(self, material_id, quantity, price, date):
         material = self.get_material(material_id)
         if not material:
@@ -103,7 +127,30 @@ class MaterialController:
         self.session.add(new_purchase)
         self.session.commit()
         return new_purchase
+    
+    def get_purchase(self, purchase_id):
+        return self.session.query(MaterialPurchase).filter_by(purchase_id=purchase_id).first()
+    
+    def delete_material_purchase(self, purchase_id):
+        purchase = self.get_purchase(purchase_id)
+        if not purchase:
+            return False
+        self.update_stock(purchase.material_id, -purchase.quantity)
+        self.session.delete(purchase)
+        self.session.commit()
+        return True
 
+    def update_material_purchase(self, purchase_id, **kwargs):
+        purchase = self.get_purchase(purchase_id)
+        self.update_stock(purchase.material_id, -purchase.quantity)
+        if not purchase:
+            return None
+        for key, value in kwargs.items():
+            setattr(purchase, key, value)
+        self.update_stock(purchase.material_id, purchase.quantity)
+        self.session.commit()
+        return purchase
+    
     def update_stock(self, material_id, quantity):
         material = self.get_material(material_id)
         if not material:
@@ -145,11 +192,11 @@ class DealerController:
         self.session.commit()
         return True
 
-    def record_sale(self, items_id, date, price, dealer_id):
+    def record_sale(self, items, date, price, dealer_id):
         dealer = self.get_dealer(dealer_id)
         if not dealer:
             return None
-        new_sale = Sale(items_id=items_id, date=date, price=price, dealer_id=dealer_id)
+        new_sale = Sale(items=items, date=date, price=price, dealer_id=dealer_id)
         self.session.add(new_sale)
         self.session.commit()
         return new_sale
@@ -166,3 +213,20 @@ class SaleController:
     
     def get_all_sales(self):
         return self.session.query(Sale).all()
+    
+    def update_sale(self, sale_id, **kwargs):
+        sale = self.get_sale(sale_id)
+        if not sale:
+            return None
+        for key, value in kwargs.items():
+            setattr(sale, key, value)
+        self.session.commit()
+        return sale
+    
+    def delete_sale(self, sale_id):
+        sale = self.get_sale(sale_id)
+        if not sale:
+            return False
+        self.session.delete(sale)
+        self.session.commit()
+        return True

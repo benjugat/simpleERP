@@ -11,7 +11,9 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    labels = ["Enero", "Febrero", "Marzo", "Abril"]
+    values = [500, 700, 400, 1000]  # Gastos por mes
+    return render_template('index.html', labels=labels, values=values)
 
 #####################################
 #   PRODUCT MANAGEMENT              #
@@ -33,10 +35,10 @@ def add_product():
         # Obtener datos del formulario
         name = request.form['name']
         description = request.form['description']
-        sale_price = request.form['price']
-        
+        sale_price = request.form['sale_price']
+        minimum_price = request.form['minimum_price']
         product_controller = ProductController(session)
-        product = product_controller.add_product(name, description, sale_price)
+        product = product_controller.add_product(name, description, sale_price, minimum_price)
         print(f"Product added: {product}")
         
         # Redirigir a la página principal
@@ -133,6 +135,90 @@ def config_product(product_id):
     
     return render_template('config_product.html', product=product, show_materials=show_associated_materials)
 
+@app.route('/product/<int:product_id>/manufactured', methods=['GET'])
+def manufactured_items(product_id):
+
+    product_controller = ProductController(session)
+    manufactured_products = product_controller.get_all_manufactured_item(product_id)
+    product = product_controller.get_product(product_id)
+    return render_template('manufactured_products.html', product=product, manufactured_products=manufactured_products)
+
+@app.route('/product/<int:product_id>/manufactured/add', methods=['GET', 'POST'])
+def add_manufactured_item(product_id):
+
+    product_controller = ProductController(session)
+    product = product_controller.get_product(product_id)
+
+    if not product:
+        return "Product not found", 404
+
+    if request.method == 'POST':
+        
+        # Obtener datos del formulario
+        quantity = request.form['quantity']
+        description = request.form['description']
+        material_controller = MaterialController(session)
+
+        for i in range(int(quantity)):
+            manuf = product_controller.add_manufactured_item(product_id, description)
+            product_materials = product_controller.get_all_associated_materials(product_id)
+            for product_material in product_materials:
+                material = material_controller.get_material(product_material.material_id)
+                material_controller.update_stock(product_material.material_id, -1*product_material.quantity) 
+        print(f"Manufactured item added: {manuf}")
+
+        
+        # Redirigir a la página principal
+        return redirect(url_for('manufactured_items', product_id=product_id))
+    
+    return render_template('add_manufactured_item.html', product=product)
+
+@app.route('/product/<int:product_id>/manufactured/<int:item_id>/delete', methods=['GET'])
+def delete_manufactured_item(product_id, item_id):
+    product_controller = ProductController(session)
+    if product_controller.delete_manufactured_item(item_id):
+        print("Manufactured item deleted.")
+        material_controller = MaterialController(session)
+        product_materials = product_controller.get_all_associated_materials(product_id)
+        for product_material in product_materials:
+            material = material_controller.get_material(product_material.material_id)
+            material_controller.update_stock(product_material.material_id, product_material.quantity)
+    else:
+        print("Manufactured item not found.")       
+
+    return redirect(url_for('manufactured_items', product_id=product_id))
+
+
+@app.route('/product/<int:product_id>/manufactured/<int:item_id>/edit', methods=['GET', 'POST'])
+def edit_manufactured_item(product_id, item_id):
+
+    product_controller = ProductController(session)
+    product = product_controller.get_product(product_id)
+
+    if not product:
+        return "Product not found", 404
+
+    manufactured_item = product_controller.get_manufactured_item(item_id)
+    
+    if not manufactured_item:
+        return "Manufactured item not found", 404
+
+    if request.method == 'POST':
+        description = request.form['description']
+        
+        kwargs = {
+            'description': description
+        }
+        
+        updated_item = product_controller.update_manufactured_item(item_id, **kwargs)
+        if updated_item:
+            print(f"Manufactured item updated: {updated_item}")
+        else:
+            print("Manufactured item not found.")
+        
+        return redirect(url_for('manufactured_items', product_id=product_id))
+    
+    return render_template('edit_manufactured_item.html', product=product, manufactured_item=manufactured_item)
 
 #####################################
 #   STOCK MANAGEMENT                #
@@ -202,7 +288,115 @@ def edit_material(material_id):
     
     return render_template('edit_material.html', material=material)
 
+@app.route('/material/<int:material_id>/purchase/add', methods=['GET', 'POST'])
+def purchase_material(material_id):
+    material_controller = MaterialController(session)
+    material = material_controller.get_material(material_id)
+    
+    if not material:
+        return "Material not found", 404
+    
+    if request.method == 'POST':
+        quantity = int(request.form['quantity'])
+        price = float(request.form['price'])
+        date_str = request.form['date']
+        date = datetime.strptime(date_str, '%Y-%m-%d')
+        
+        purchase = material_controller.purchase_material(material_id, quantity, price, date)
+        if purchase:
+            print(f"Material purchased: {purchase}")
+        else:
+            print("Error in purchasing material.")
+        
+        return redirect(url_for('materials'))
+    
+    return render_template('purchase_material.html', material=material)
 
+@app.route('/material/purchases', defaults={'material_id': None})
+@app.route('/material/<int:material_id>/purchase/')
+def view_material_purchases(material_id):
+    material_controller = MaterialController(session)
+    if material_id:
+        material = material_controller.get_material(material_id)
+        
+        if not material:
+            return "Material not found", 404
+
+        purchases = material.purchases
+        material_name = material.name
+        print(purchases)
+    else:
+        purchases =[]
+        materials = material_controller.get_all_materials()
+        for material in materials:
+            if material.purchases:
+                purchases += material.purchases
+        material_name = "All materials"
+        print(purchases)
+    
+    return render_template('view_material_purchases.html', material_name=material_name, purchases=purchases)
+
+@app.route('/material/<int:material_id>/purchase/<int:purchase_id>/delete', methods=['GET'])
+def delete_material_purchase(material_id, purchase_id):
+    material_controller = MaterialController(session)
+    material = material_controller.get_material(material_id)
+    
+    if not material:
+        return "Material not found", 404
+    
+    purchase = None
+    for p in material.purchases:
+        if p.purchase_id == purchase_id:
+            purchase = p
+            break
+    
+    if not purchase:
+        return "Purchase not found", 404
+    
+    quantity = purchase.quantity
+    if material_controller.delete_material_purchase(purchase_id):
+        print("Purchase deleted.")
+    else:
+        print("Error deleting purchase.")
+    
+    return redirect(url_for('view_material_purchases', material_id=material_id))
+
+@app.route('/material/<int:material_id>/purchase/<int:purchase_id>/edit', methods=['GET', 'POST'])
+def edit_material_purchase(material_id, purchase_id):
+    material_controller = MaterialController(session)
+    material = material_controller.get_material(material_id)
+    
+    if not material:
+        return "Material not found", 404
+    
+    purchase = None
+    for p in material.purchases:
+        if p.purchase_id == purchase_id:
+            purchase = p
+            break
+    
+    if not purchase:
+        return "Purchase not found", 404
+    
+    if request.method == 'POST':
+        old_quantity = purchase.quantity
+        quantity = int(request.form['quantity'])
+        price = float(request.form['price'])
+        date_str = request.form['date']
+        date = datetime.strptime(date_str, '%Y-%m-%d')
+        
+        purchase.quantity = quantity
+        purchase.price = price
+        purchase.date = date
+        
+        material_controller.update_stock(material_id, quantity - old_quantity)
+        material_controller.session.commit()
+        
+        print(f"Purchase updated: {purchase}")
+        
+        return redirect(url_for('view_material_purchases', material_id=material_id))
+    
+    return render_template('edit_material_purchase.html', material=material, purchase=purchase)
 
 #####################################
 #   DEALER MANAGEMENT               #
@@ -290,6 +484,8 @@ def sales(dealer_id):
 def add_sale_dealer(dealer_id):
     dealer_controller = DealerController(session)
     dealer = dealer_controller.get_dealer(dealer_id)
+    proudct_controller = ProductController(session)
+
     if not dealer:
         return "Dealer not found", 404
     
@@ -297,14 +493,16 @@ def add_sale_dealer(dealer_id):
         
         # Obtener datos del formulario
         item_id = request.form['items_id']
+        date_str = request.form['date']
         # meter checkbox con todos los manufactured itemss
         #partial fix:
-        items_id = [item_id]
-        date = request.form['date']
+        items = []
+        items.append(proudct_controller.get_manufactured_item(item_id))
+        date = datetime.strptime(date_str, '%Y-%m-%d')
         price =  request.form['price']
         
         
-        sale = dealer_controller.record_sale(items_id,date,price,dealer_id)
+        sale = dealer_controller.record_sale(items,date,price,dealer_id)
         print(f"Sale added to dealer: {sale}")
         
         # Redirigir a la página principal
@@ -312,7 +510,59 @@ def add_sale_dealer(dealer_id):
     
     return render_template('add_sale_dealer.html', dealer=dealer)
 
+@app.route('/dealer/<int:dealer_id>/sale/<int:sale_id>/edit', methods=['GET', 'POST'])
+def edit_sale(dealer_id, sale_id):
+    dealer_controller = DealerController(session)
+    dealer = dealer_controller.get_dealer(dealer_id)
+    if not dealer:
+        return "Dealer not found", 404
 
+    sale_controller = SaleController(session)
+    sale = sale_controller.get_sale(sale_id)
+    if not sale:
+        return "Sale not found", 404
+    
+    if request.method == 'POST':
+        #item_id = request.form['items_id']  # For simplicity, we won't change items here
+        date_str = request.form['date']
+        date = datetime.strptime(date_str, '%Y-%m-%d')
+        price = request.form['price']
+        
+        kwargs = {
+            #'items': items,  # Not changing items for simplicity
+            'date': date,
+            'price': price
+        }
+        
+        updated_sale = sale_controller.update_sale(sale_id, **kwargs)
+        if updated_sale:
+            print(f"Sale updated: {updated_sale}")
+        else:
+            print("Sale not found.")
+        
+        return redirect(url_for('sales', dealer_id=dealer_id))
+    
+    return render_template('edit_sale_dealer.html', dealer=dealer, sale=sale)
+
+@app.route('/dealer/<int:dealer_id>/sale/<int:sale_id>/delete', methods=['GET'])
+def delete_sale(dealer_id, sale_id):
+    sale_controller = SaleController(session)
+    if sale_controller.delete_sale(sale_id):
+        print("Sale deleted.")
+    else:
+        print("Sale not found.")
+    return redirect(url_for('sales', dealer_id=dealer_id))
+
+
+#####################################
+#   TEST                           #
+#####################################
+
+@app.route('/test')
+def test():
+    labels = ["Enero", "Febrero", "Marzo", "Abril"]
+    values = [500, 700, 400, 1000]  # Gastos por mes
+    return render_template("test.html", labels=labels, values=values)       
 
 if __name__ == '__main__':
     engine = create_engine('sqlite:///example.db')

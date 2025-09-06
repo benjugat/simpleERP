@@ -42,18 +42,18 @@
                         <form method="POST">
                             <div class="mb-3">
                                 <label for="name" class="form-label">Items ID</label>
-                                <input type="text" class="form-control" id="items_id" name="items_id" placeholder="Ej: 1" required>
+                                <input type="text" class="form-control" id="items_id" name="items_id" value="{{sale.items[0].item_id}}" required>
                             </div>
                             <div class="mb-3">
                                 <label for="price" class="form-label">Price (€)</label>
-                                <input type="number" class="form-control" id="price" name="price" step="0.01" placeholder="Ej: 1299.99" required>
+                                <input type="number" class="form-control" id="price" name="price" step="0.01" value="{{sale.price}}" required>
                             </div>
                             <div class="mb-3">
                                 <label for="name" class="form-label">Date</label>
-                                <input type="date" class="form-control" id="date" name="date" required>
+                                <input type="date" class="form-control" id="date" name="date" value="{{sale.date}}" required>
                             </div>
                             <div class="text-center">
-                                <button type="submit" class="btn btn-primary">Register dealer</button>
+                                <button type="submit" class="btn btn-primary">Save changes</button>
                             </div>
                         </form>
                     </div>

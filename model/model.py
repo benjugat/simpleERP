@@ -10,6 +10,7 @@ class Product(Base):
     name = Column(String)
     description = Column(String)
     sale_price = Column(Numeric(10, 2), nullable=False)
+    minimum_price = Column(Numeric(10, 2), nullable=False)
     manufactured_items  = relationship("ManufacturedItem", back_populates="product", cascade="all, delete-orphan")  
     materials = relationship("ProductMaterial", back_populates="product", cascade="all, delete-orphan")
 
@@ -37,14 +38,13 @@ class ManufacturedItem(Base):
     item_id = Column(Integer, primary_key=True)
     product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
     description = Column(String)
-    cost_price = Column(Numeric(10, 2), nullable=False)
     sale_id = Column(Integer, ForeignKey('sales.sale_id'))
     product = relationship("Product", back_populates="manufactured_items")
 
-    manufactured = relationship("Sale", back_populates="items_id")
+    manufactured = relationship("Sale", back_populates="items")
 
     def __repr__(self):
-        return f"<manufacturedItem(item_id={self.item_id}, name={self.name}, cost_price={self.cost_price})>"
+        return f"<manufacturedItem(item_id={self.item_id}, product_id={self.product_id})>"
 
 
 class Material(Base):
@@ -91,7 +91,7 @@ class Sale(Base):
     __tablename__ = 'sales'
     
     sale_id = Column(Integer, primary_key=True)
-    items_id = relationship("ManufacturedItem", back_populates="manufactured", cascade="all, delete-orphan")
+    items = relationship("ManufacturedItem", back_populates="manufactured", cascade="all, delete-orphan")
     date = Column(Date)
     price = Column(Numeric(10, 2), nullable=False)
     dealer_id = Column(Integer, ForeignKey('dealers.dealer_id'), nullable=False)
@@ -99,7 +99,7 @@ class Sale(Base):
     dealer = relationship("Dealer", back_populates="sales")
 
     def __repr__(self):
-        return f"<Sale(product_id={self.product_id}, quantity={self.quantity})>"
+        return f"<Sale(sale_id={self.sale_id}, price={self.price}, date={self.date})>"
 
 
 
