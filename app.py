@@ -4,16 +4,42 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from datetime import datetime
 
-from model.model import Product, Base
+from model.model import Base
 from controller.controller import ProductController, MaterialController, DealerController, SaleController
+from modules.modules import *
 
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-    labels = ["Enero", "Febrero", "Marzo", "Abril"]
-    values = [500, 700, 400, 1000]  # Gastos por mes
-    return render_template('index.html', labels=labels, values=values)
+
+    sales_count = calculate_number_sales_by_product(session)
+    lctx1 = list()
+    vctx1 = list()
+    for k in sales_count.keys():
+        lctx1.append(k)
+        vctx1.append(sales_count[k])
+    
+    lctx2 = list()
+    vctx2 = list()
+    
+    c = calculate_costs(session)
+    s = calculate_total_sales(session)
+    b = s - c
+
+    lctx2 = ["Costs", "Sales", "Benefits"]
+    vctx2 = [c, s, b]
+
+    sales_count = calculate_sales_by_product(session)
+    lctx3 = list()
+    vctx3 = list()
+
+    for k in sales_count.keys():
+        lctx3.append(k)
+        vctx3.append(sales_count[k])
+        print(sales_count[k])
+
+    return render_template('index.html', lctx1=lctx1, vctx1=vctx1, lctx2=lctx2, vctx2=vctx2, lctx3=lctx3, vctx3=vctx3)
 
 #####################################
 #   PRODUCT MANAGEMENT              #

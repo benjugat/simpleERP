@@ -131,6 +131,9 @@ class MaterialController:
     def get_purchase(self, purchase_id):
         return self.session.query(MaterialPurchase).filter_by(purchase_id=purchase_id).first()
     
+    def get_all_purchases(self):
+        return self.session.query(MaterialPurchase).all()
+
     def delete_material_purchase(self, purchase_id):
         purchase = self.get_purchase(purchase_id)
         if not purchase:
