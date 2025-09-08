@@ -133,6 +133,26 @@ def delete_product(product_id):
     
     return redirect(url_for('products'))
 
+@app.route('/product/<int:product_id>/duplicate', methods=['GET'])
+def duplicate_product(product_id):
+    product_controller = ProductController(session)
+    product = product_controller.get_product(product_id)
+    if not product:
+        return "Product not found", 404
+
+    new_product = product_controller.add_product(
+        name = product.name + " (Copy)",
+        description = product.description,
+        sale_price = product.sale_price,
+        minimum_price = product.minimum_price
+    )
+    if new_product:
+        print(f"Product duplicated: {new_product}")
+    else:
+        print("Error duplicating product.")
+    
+    return redirect(url_for('products'))
+
 @app.route('/product/<int:product_id>/edit', methods=['GET', 'POST'])
 def edit_product(product_id):
     product_controller = ProductController(session)
@@ -262,7 +282,6 @@ def delete_manufactured_item(product_id, item_id):
         print("Manufactured item not found.")       
 
     return redirect(url_for('manufactured_items', product_id=product_id))
-
 
 @app.route('/product/<int:product_id>/manufactured/<int:item_id>/edit', methods=['GET', 'POST'])
 def edit_manufactured_item(product_id, item_id):
@@ -621,6 +640,7 @@ def edit_sale(dealer_id, sale_id):
         return redirect(url_for('sales', dealer_id=dealer_id))
     
     return render_template('edit_sale_dealer.html', dealer=dealer, sale=sale)
+
 
 @app.route('/dealer/<int:dealer_id>/sale/<int:sale_id>/delete', methods=['GET'])
 def delete_sale(dealer_id, sale_id):
