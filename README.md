@@ -11,4 +11,7 @@ Please create a .env file with the following content:
 
 ```
 DATABASE_URL=sqlite:///example.db
+SERVER_HOST=0.0.0.0
+SERVER_PORT=5000
+
 ```

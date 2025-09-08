@@ -640,4 +640,4 @@ if __name__ == '__main__':
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    app.run(debug=True)
+    app.run(debug=True, host=os.getenv('SERVER_HOST'), port=os.getenv('SERVER_PORT'))
