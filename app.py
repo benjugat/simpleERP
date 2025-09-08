@@ -146,11 +146,18 @@ def duplicate_product(product_id):
         sale_price = product.sale_price,
         minimum_price = product.minimum_price
     )
+
+    materials = product_controller.get_all_associated_materials(product_id)
+    for material in materials:
+        product_controller.associate_material(new_product.product_id, material.material_id, material.quantity)
+
+
     if new_product:
         print(f"Product duplicated: {new_product}")
     else:
         print("Error duplicating product.")
     
+
     return redirect(url_for('products'))
 
 @app.route('/product/<int:product_id>/edit', methods=['GET', 'POST'])
