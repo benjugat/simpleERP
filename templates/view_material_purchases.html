@@ -57,7 +57,7 @@
                 <thead class="table-primary">
                     <tr>
                         <th>PurchaseID</th>
-                        <th>MaterialID</th>
+                        <th>Material</th>
                         <th>Quantity</th>
                         <th>Price</th>
                         <th>Date</th>
@@ -68,13 +68,13 @@
                     {% for purchase in purchases %}
                     <tr>
                         <td>{{ purchase.purchase_id }}</td>
-                        <td>{{ purchase.material_id }}</td>
+                        <td>{{ purchase.material.name }}</td>
                         <td>{{ purchase.quantity }}</td>
                         <td>{{ purchase.price }}</td>
                         <td>{{ purchase.date }}</td>
                         <td>
                             <a href="/material/{{ purchase.material_id }}/purchase/{{purchase.purchase_id}}/edit" class="btn btn-warning btn-sm">Edit</a>
-                            <a href="/material/{{ purchase.material_id }}/purchase/{{purchase.purchase_id}}/delete" class="btn btn-danger btn-sm">Delete</a>
+                            <a href="/material/{{ purchase.material_id }}/purchase/{{purchase.purchase_id}}/delete" onclick="return confirm('Are you sure you want to delete this record?');" class="btn btn-danger btn-sm">Delete</a>
                         </td>
                     </tr>
                     {% endfor %}

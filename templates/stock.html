@@ -76,7 +76,7 @@
                             <a href="/material/{{ material.material_id }}/purchase/" class="btn btn-primary btn-sm">View</a>
                             <a href="/material/{{ material.material_id }}/purchase/add" class="btn btn-success btn-sm">Purchase</a>
                             <a href="/material/{{ material.material_id }}/edit" class="btn btn-warning btn-sm">Edit</a>
-                            <a href="/material/{{ material.material_id }}/delete" class="btn btn-danger btn-sm">Delete</a>
+                            <a href="/material/{{ material.material_id }}/delete" onclick="return confirm('Are you sure you want to delete this record?');" class="btn btn-danger btn-sm">Delete</a>
                         </td>
                     </tr>
                     {% endfor %}

@@ -83,6 +83,18 @@ class ProductController:
         self.session.commit()
         return True
 
+class ManufacturedItemController:
+    def __init__(self, session):
+        self.session = session
+
+    def get_manufactured_item(self, item_id):
+        return self.session.query(ManufacturedItem).filter_by(item_id=item_id).first()
+
+    def get_all_manufactured_items(self):
+        return self.session.query(ManufacturedItem).all()
+    
+    def get_not_sold_items(self):
+        return self.session.query(ManufacturedItem).filter_by(sale_id=None).all()
 
 class MaterialController:
     def __init__(self, session):
@@ -160,8 +172,18 @@ class MaterialController:
             return None
         material.stock = (material.stock or 0) + quantity
         self.session.commit()
-        
 
+    def get_year_purchases(self, year):
+        return self.session.query(MaterialPurchase).filter(MaterialPurchase.date.between(f'{year}-01-01', f'{year}-12-31')).all()        
+
+    def get_month_purchases(self, year, month):
+        start_date = f'{year}-{month:02d}-01'
+        if month == 12:
+            end_date = f'{year + 1}-01-01'
+        else:
+            end_date = f'{year}-{month + 1:02d}-01'
+        return self.session.query(MaterialPurchase).filter(MaterialPurchase.date.between(start_date, end_date)).all()
+    
 class DealerController:
     def __init__(self, session):
         self.session = session
@@ -233,3 +255,14 @@ class SaleController:
         self.session.delete(sale)
         self.session.commit()
         return True
+    
+    def get_year_sales(self, year):
+        return self.session.query(Sale).filter(Sale.date.between(f'{year}-01-01', f'{year}-12-31')).all()
+    
+    def get_month_sales(self, year, month):
+        start_date = f'{year}-{month:02d}-01'
+        if month == 12:
+            end_date = f'{year + 1}-01-01'
+        else:
+            end_date = f'{year}-{month + 1:02d}-01'
+        return self.session.query(Sale).filter(Sale.date.between(start_date, end_date)).all()

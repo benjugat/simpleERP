@@ -1,14 +1,23 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from datetime import datetime
 
 from model.model import Base
-from controller.controller import ProductController, MaterialController, DealerController, SaleController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController
 from modules.modules import *
 
+from dotenv import load_dotenv
+import os
+
 app = Flask(__name__)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('', 'favicon.ico', mimetype='image/png')
+
 
 @app.route('/')
 def index():
@@ -37,13 +46,55 @@ def index():
     for k in sales_count.keys():
         lctx3.append(k)
         vctx3.append(sales_count[k])
-        print(sales_count[k])
 
     return render_template('index.html', lctx1=lctx1, vctx1=vctx1, lctx2=lctx2, vctx2=vctx2, lctx3=lctx3, vctx3=vctx3)
 
-#####################################
-#   PRODUCT MANAGEMENT              #
-#####################################
+###########################
+#       DASHBOARD         #
+###########################
+
+@app.route('/dashboard')
+def dashboard():
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    lctx1 = ["Jan","Feb","March"]
+    vctx1 = [1000, 2000, 1500]
+
+    number_sales_by_month = get_number_sales_by_month(session, 2025)
+    sales_by_month = get_sales_by_month(session, 2025)
+    
+    costs_by_month = get_costs_by_month(session, 2025)
+
+    sales_count = calculate_sales_by_product(session)
+    product_name = list()
+    sales_by_product = list()
+    for k in sales_count.keys():
+        product_name.append(k)
+        sales_by_product.append(sales_count[k])
+    
+    number_sales_count = calculate_number_sales_by_product(session)
+    number_sales_by_product = list()
+    for k in number_sales_count.keys():
+        number_sales_by_product.append(number_sales_count[k])
+
+    dealers = list()
+    sales_by_dealer = list()
+    dealer_sales_count = calculate_number_sales_by_dealer(session)
+    for k in dealer_sales_count.keys():
+        dealers.append(k)
+        sales_by_dealer.append(dealer_sales_count[k])
+
+
+    kpi_total_sales = calculate_total_sales(session)
+    kpi_total_profit = kpi_total_sales - calculate_costs(session)
+    kpi_sold_items = sum(number_sales_count.values())
+    return render_template('dashboard.html', kpi_total_sales=kpi_total_sales, kpi_total_profit=kpi_total_profit, kpi_sold_items=kpi_sold_items, months=months, dealers=dealers, sales_by_dealer=sales_by_dealer, product_name=product_name, sales_by_product=sales_by_product, number_sales_by_product=number_sales_by_product, number_sales_by_month=number_sales_by_month, sales_by_month=sales_by_month, costs_by_month=costs_by_month)   
+
+
+
+
+###########################
+#   PRODUCT MANAGEMENT    #
+###########################
 
 @app.route('/products')
 def products():
@@ -93,12 +144,14 @@ def edit_product(product_id):
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
-        sale_price = request.form['price']
+        sale_price = request.form['sale_price']
+        minimum_price = request.form['minimum_price']
         
         kwargs = {
             'name': name,
             'description': description,
-            'sale_price': sale_price
+            'sale_price': sale_price,
+            'minimum_price': minimum_price
         }
         
         updated_product = product_controller.update_product(product_id, **kwargs)
@@ -114,10 +167,6 @@ def edit_product(product_id):
 
 @app.route('/product/<int:product_id>/config', methods=['GET', 'POST'])
 def config_product(product_id):
-
-    
-    # solucion rapida, disasociar todo, asociar de nuevo?
-    # otra solucion disasociar si es 0
 
     product_controller = ProductController(session)
     product = product_controller.get_product(product_id)
@@ -146,7 +195,6 @@ def config_product(product_id):
         r = request
         for mat_id in r.form:
             quantity=r.form[mat_id]
-            print(quantity)
             if int(quantity) == 0:
                 if product_controller.delete_associated_materials(product_id, mat_id):
                     print("Material dissasociated")
@@ -161,6 +209,7 @@ def config_product(product_id):
     
     return render_template('config_product.html', product=product, show_materials=show_associated_materials)
 
+@app.route('/product/manufactured', defaults={'product_id': None})
 @app.route('/product/<int:product_id>/manufactured', methods=['GET'])
 def manufactured_items(product_id):
 
@@ -246,9 +295,9 @@ def edit_manufactured_item(product_id, item_id):
     
     return render_template('edit_manufactured_item.html', product=product, manufactured_item=manufactured_item)
 
-#####################################
-#   STOCK MANAGEMENT                #
-#####################################
+##########################
+#   STOCK MANAGEMENT     #
+##########################
 
 @app.route('/materials')
 def materials():
@@ -350,7 +399,6 @@ def view_material_purchases(material_id):
 
         purchases = material.purchases
         material_name = material.name
-        print(purchases)
     else:
         purchases =[]
         materials = material_controller.get_all_materials()
@@ -358,7 +406,6 @@ def view_material_purchases(material_id):
             if material.purchases:
                 purchases += material.purchases
         material_name = "All materials"
-        print(purchases)
     
     return render_template('view_material_purchases.html', material_name=material_name, purchases=purchases)
 
@@ -424,9 +471,9 @@ def edit_material_purchase(material_id, purchase_id):
     
     return render_template('edit_material_purchase.html', material=material, purchase=purchase)
 
-#####################################
-#   DEALER MANAGEMENT               #
-#####################################
+############################
+#   DEALER MANAGEMENT      #
+############################
 
 @app.route('/dealers')
 def dealers():
@@ -487,9 +534,9 @@ def edit_dealer(dealer_id):
     return render_template('edit_dealer.html', dealer=dealer)
 
 
-#####################################
-#   SALES                           #
-#####################################
+######################
+#       SALES        #
+######################
 @app.route('/sales', defaults={'dealer_id': None})
 @app.route('/dealer/<int:dealer_id>/sales')
 def sales(dealer_id):
@@ -512,18 +559,23 @@ def add_sale_dealer(dealer_id):
     dealer = dealer_controller.get_dealer(dealer_id)
     proudct_controller = ProductController(session)
 
+    manufactureditems_controller = ManufacturedItemController(session)
+    items = manufactureditems_controller.get_not_sold_items()
+
     if not dealer:
         return "Dealer not found", 404
     
     if request.method == 'POST':
         
         # Obtener datos del formulario
-        item_id = request.form['items_id']
         date_str = request.form['date']
-        # meter checkbox con todos los manufactured itemss
-        #partial fix:
         items = []
-        items.append(proudct_controller.get_manufactured_item(item_id))
+        for item_id in request.form.getlist('items[]'):
+            print(f"Selected item ID: {item_id}")
+            items.append(proudct_controller.get_manufactured_item(item_id))
+
+        
+        
         date = datetime.strptime(date_str, '%Y-%m-%d')
         price =  request.form['price']
         
@@ -534,7 +586,7 @@ def add_sale_dealer(dealer_id):
         # Redirigir a la página principal
         return redirect(url_for('sales', dealer_id=dealer_id))
     
-    return render_template('add_sale_dealer.html', dealer=dealer)
+    return render_template('add_sale_dealer.html', dealer=dealer, items=items)
 
 @app.route('/dealer/<int:dealer_id>/sale/<int:sale_id>/edit', methods=['GET', 'POST'])
 def edit_sale(dealer_id, sale_id):
@@ -578,20 +630,12 @@ def delete_sale(dealer_id, sale_id):
     else:
         print("Sale not found.")
     return redirect(url_for('sales', dealer_id=dealer_id))
-
-
-#####################################
-#   TEST                           #
-#####################################
-
-@app.route('/test')
-def test():
-    labels = ["Enero", "Febrero", "Marzo", "Abril"]
-    values = [500, 700, 400, 1000]  # Gastos por mes
-    return render_template("test.html", labels=labels, values=values)       
+ 
 
 if __name__ == '__main__':
-    engine = create_engine('sqlite:///example.db')
+    load_dotenv()
+
+    engine = create_engine(os.getenv('DATABASE_URL'))
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()

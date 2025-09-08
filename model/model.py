@@ -44,7 +44,7 @@ class ManufacturedItem(Base):
     manufactured = relationship("Sale", back_populates="items")
 
     def __repr__(self):
-        return f"<manufacturedItem(item_id={self.item_id}, product_id={self.product_id})>"
+        return f"<ManufacturedItem(item_id={self.item_id}, product_name={self.product.name}, description={self.description})>"  
 
 
 class Material(Base):
