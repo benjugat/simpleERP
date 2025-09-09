@@ -664,7 +664,7 @@ def delete_sale(dealer_id, sale_id):
     else:
         print("Sale not found.")
     return redirect(url_for('sales', dealer_id=dealer_id))
- 
+
 
 if __name__ == '__main__':
     load_dotenv()
