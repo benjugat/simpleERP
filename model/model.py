@@ -91,7 +91,7 @@ class Sale(Base):
     __tablename__ = 'sales'
     
     sale_id = Column(Integer, primary_key=True)
-    items = relationship("ManufacturedItem", back_populates="manufactured", cascade="all, delete-orphan")
+    items = relationship("ManufacturedItem", back_populates="manufactured")
     date = Column(Date)
     price = Column(Numeric(10, 2), nullable=False)
     dealer_id = Column(Integer, ForeignKey('dealers.dealer_id'), nullable=False)

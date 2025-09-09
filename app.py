@@ -213,6 +213,7 @@ def config_product(product_id):
             'quantity' : 0
         }
         asso = product_controller.get_associated_material(product_id, material.material_id)
+        print(asso)
         if asso and asso.quantity != 0:
             a['quantity'] = asso.quantity
         show_associated_materials.append(a)
@@ -226,11 +227,15 @@ def config_product(product_id):
                 if product_controller.delete_associated_materials(product_id, mat_id):
                     print("Material dissasociated")
             else:
-                mat = product_controller.associate_material(product_id, mat_id, quantity)
-                if mat:
-                    print(f"Material Associated: {mat}")
+                matt = product_controller.get_associated_material(product_id, mat_id)
+                if matt:
+                    product_controller.update_associated_material(product_id, mat_id, quantity)
                 else:
-                    print("Error ar associating materials to a product")
+                    mat = product_controller.associate_material(product_id, mat_id, quantity)
+                    if mat:
+                        print(f"Material Associated: {mat}")
+                    else:
+                        print("Error ar associating materials to a product")
 
         return redirect(url_for('products'))
     
@@ -262,9 +267,11 @@ def add_manufactured_item(product_id):
         material_controller = MaterialController(session)
 
         for i in range(int(quantity)):
+            print(i)
             manuf = product_controller.add_manufactured_item(product_id, description)
             product_materials = product_controller.get_all_associated_materials(product_id)
             for product_material in product_materials:
+                print(product_material)
                 material = material_controller.get_material(product_material.material_id)
                 material_controller.update_stock(product_material.material_id, -1*product_material.quantity) 
         print(f"Manufactured item added: {manuf}")

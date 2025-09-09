@@ -83,6 +83,14 @@ class ProductController:
         self.session.commit()
         return True
 
+    def update_associated_material(self, product_id, material_id, quantity):
+        association = self.get_associated_material(product_id, material_id)
+        if not association:
+            return None
+        association.quantity = quantity
+        self.session.commit()
+        return association
+    
 class ManufacturedItemController:
     def __init__(self, session):
         self.session = session
