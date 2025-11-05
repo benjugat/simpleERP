@@ -59,6 +59,7 @@
                 <thead class="table-primary">
                     <tr>
                         <th>ProductID</th>
+                        <th>Type</th>
                         <th>Name</th>
                         <th>Description</th>
                         <th>Sale Price</th>
@@ -70,6 +71,7 @@
                     {% for product in products %}
                     <tr>
                         <td>{{ product.product_id }}</td>
+                        <td>{{ product.product_type }}</td>
                         <td>{{ product.name }}</td>
                         <td>{{ product.description }}</td>
                         <td>{{ product.sale_price }}</td>

@@ -22,7 +22,7 @@ def favicon():
 @app.route('/')
 def index():
 
-    sales_count = calculate_number_sales_by_product(session)
+    sales_count = calculate_number_sales_by_product_type(session)
     lctx1 = list()
     vctx1 = list()
     for k in sales_count.keys():
@@ -114,8 +114,9 @@ def add_product():
         description = request.form['description']
         sale_price = request.form['sale_price']
         minimum_price = request.form['minimum_price']
+        product_type = request.form['product_type']
         product_controller = ProductController(session)
-        product = product_controller.add_product(name, description, sale_price, minimum_price)
+        product = product_controller.add_product(name, description, sale_price, minimum_price, product_type)
         print(f"Product added: {product}")
         
         # Redirigir a la página principal
@@ -144,7 +145,8 @@ def duplicate_product(product_id):
         name = product.name + " (Copy)",
         description = product.description,
         sale_price = product.sale_price,
-        minimum_price = product.minimum_price
+        minimum_price = product.minimum_price,
+        product_type = product.product_type
     )
 
     materials = product_controller.get_all_associated_materials(product_id)
@@ -173,12 +175,14 @@ def edit_product(product_id):
         description = request.form['description']
         sale_price = request.form['sale_price']
         minimum_price = request.form['minimum_price']
+        product_type = request.form['product_type']
         
         kwargs = {
             'name': name,
             'description': description,
             'sale_price': sale_price,
-            'minimum_price': minimum_price
+            'minimum_price': minimum_price,
+            'product_type': product_type
         }
         
         updated_product = product_controller.update_product(product_id, **kwargs)

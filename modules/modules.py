@@ -13,6 +13,15 @@ def calculate_number_sales_by_product(session):
     sales_count = {product.name: calculate_number_sales_by_product_id(session, product.product_id) for product in products}
     return sales_count
 
+def calculate_number_sales_by_product_type(session):
+    product_controller = ProductController(session)
+    products = product_controller.get_all_products()
+    sales_count = {}
+    for product in products:
+        if product.product_type not in sales_count:
+            sales_count[product.product_type] = 0
+        sales_count[product.product_type] =  sales_count[product.product_type] + calculate_number_sales_by_product_id(session, product.product_id)
+    return sales_count
 
 def calculate_sales_by_product_id(session, product_id):
     product_controller = ProductController(session)
@@ -30,6 +39,17 @@ def calculate_sales_by_product(session):
     sales_count = {product.name: calculate_sales_by_product_id(session, product.product_id) for product in products}
     return sales_count
 
+def calculate_sales_by_product_type(session):
+    product_controller = ProductController(session)
+    products = product_controller.get_all_products()
+    sales_count = {}
+    for product in products:
+        if product.product_type not in sales_count:
+            sales_count[product.product_type] = 0
+        sales_count[product.product_type] =  sales_count[product.product_type] + calculate_sales_by_product_id(session, product.product_id)
+        print(sales_count[product.product_type])
+    print(sales_count)
+    return sales_count
 
 def calculate_total_sales(session):
     sale_controller = SaleController(session)

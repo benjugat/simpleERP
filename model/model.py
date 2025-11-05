@@ -13,7 +13,8 @@ class Product(Base):
     minimum_price = Column(Numeric(10, 2), nullable=False)
     manufactured_items  = relationship("ManufacturedItem", back_populates="product", cascade="all, delete-orphan")  
     materials = relationship("ProductMaterial", back_populates="product", cascade="all, delete-orphan")
-
+    product_type = Column(String)
+    
     def __repr__(self):
         return f"<Product(product_id={self.product_id}, name={self.name}, sale_price={self.sale_price})>"
 
