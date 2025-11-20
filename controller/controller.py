@@ -5,8 +5,8 @@ class ProductController:
     def __init__(self, session):
         self.session = session
 
-    def add_product(self, name, description, sale_price, minimum_price):
-        new_product = Product(name=name, description=description, sale_price=sale_price, minimum_price=minimum_price)
+    def add_product(self, name, description, sale_price, minimum_price, product_type):
+        new_product = Product(name=name, description=description, sale_price=sale_price, minimum_price=minimum_price, product_type=product_type)    
         self.session.add(new_product)
         self.session.commit()
         return new_product
