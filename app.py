@@ -56,39 +56,47 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
+    data_dashboard = {}
+    data_dashboard['current_month'] = datetime.now().month
+    data_dashboard['current_year'] = datetime.now().year
     months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-    lctx1 = ["Jan","Feb","March"]
-    vctx1 = [1000, 2000, 1500]
+    data_dashboard['months'] = months[data_dashboard['current_month']:] + months[:data_dashboard['current_month']]
 
-    number_sales_by_month = get_number_sales_by_month(session, 2025)
-    sales_by_month = get_sales_by_month(session, 2025)
-    
-    costs_by_month = get_costs_by_month(session, 2025)
+
+    data_dashboard['number_sales_by_month'] = len(get_sales_by_month_of_last_12_months(session))
+
+    data_dashboard['sales_by_month'] = get_sales_by_month_of_last_12_months(session)
+    data_dashboard['costs_by_month'] = get_costs_by_month_of_last_12_months(session)
 
     sales_count = calculate_sales_by_product(session)
-    product_name = list()
-    sales_by_product = list()
+    data_dashboard['product_name'] = list()
+    data_dashboard['sales_by_product'] = list()
     for k in sales_count.keys():
-        product_name.append(k)
-        sales_by_product.append(sales_count[k])
+        data_dashboard['product_name'].append(k)
+        data_dashboard['sales_by_product'].append(sales_count[k])
     
     number_sales_count = calculate_number_sales_by_product(session)
-    number_sales_by_product = list()
+    data_dashboard['number_sales_by_product'] = list()
     for k in number_sales_count.keys():
-        number_sales_by_product.append(number_sales_count[k])
+        data_dashboard['number_sales_by_product'].append(number_sales_count[k])
 
-    dealers = list()
-    sales_by_dealer = list()
+    data_dashboard['dealers'] = list()
+    data_dashboard['sales_by_dealer'] = list()
     dealer_sales_count = calculate_number_sales_by_dealer(session)
     for k in dealer_sales_count.keys():
-        dealers.append(k)
-        sales_by_dealer.append(dealer_sales_count[k])
+        data_dashboard['dealers'].append(k)
+        data_dashboard['sales_by_dealer'].append(dealer_sales_count[k])
 
 
-    kpi_total_sales = calculate_total_sales(session)
-    kpi_total_profit = kpi_total_sales - calculate_costs(session)
-    kpi_sold_items = sum(number_sales_count.values())
-    return render_template('dashboard.html', kpi_total_sales=kpi_total_sales, kpi_total_profit=kpi_total_profit, kpi_sold_items=kpi_sold_items, months=months, dealers=dealers, sales_by_dealer=sales_by_dealer, product_name=product_name, sales_by_product=sales_by_product, number_sales_by_product=number_sales_by_product, number_sales_by_month=number_sales_by_month, sales_by_month=sales_by_month, costs_by_month=costs_by_month)   
+    data_dashboard['kpi_total_sales'] = calculate_total_sales(session)
+    data_dashboard['kpi_total_profit'] = data_dashboard['kpi_total_sales'] - calculate_costs(session)
+    data_dashboard['kpi_sold_items'] = sum(number_sales_count.values())
+
+    data_dashboard['kpi_current_year_sales'] = calculate_sales_of_a_year(session, data_dashboard['current_year'])
+    data_dashboard['kpi_current_year_profit'] = data_dashboard['kpi_current_year_sales'] - calculate_costs_of_a_year(session, data_dashboard['current_year'])
+    data_dashboard['kpi_current_year_items'] = calculate_number_sales_by_year(session, data_dashboard['current_year'])
+
+    return render_template('dashboard.html', data_dashboard=data_dashboard)   
 
 
 

@@ -1,4 +1,5 @@
 from controller.controller import ProductController, MaterialController, DealerController, SaleController
+from datetime import datetime
 
 def calculate_number_sales_by_product_id(session, product_id):
     product_controller = ProductController(session)
@@ -63,7 +64,19 @@ def calculate_costs(session):
     total_costs = sum(purchase.price for purchase in purchases)
     return total_costs
 
-def get_number_sales_by_month(session, year):
+def calculate_sales_of_a_year(session, year):
+    sale_controller = SaleController(session)
+    sales = sale_controller.get_year_sales(year)
+    total_sales = sum(sale.price for sale in sales)
+    return total_sales
+
+def calculate_costs_of_a_year(session, year):
+    material_controller = MaterialController(session)
+    purchases = material_controller.get_year_purchases(year)
+    total_costs = sum(purchase.price for purchase in purchases)
+    return total_costs
+
+def get_number_sales_by_month_of_a_year(session, year):
     sale_controller = SaleController(session)
     month_sales = []
     for month in range(1, 13):
@@ -72,7 +85,7 @@ def get_number_sales_by_month(session, year):
         month_sales.append(total_sales)
     return month_sales
 
-def get_sales_by_month(session, year):
+def get_sales_by_month_of_a_year(session, year):
     sale_controller = SaleController(session)
     month_sales = []
     for month in range(1, 13):
@@ -81,7 +94,7 @@ def get_sales_by_month(session, year):
         month_sales.append(total_sales)
     return month_sales
 
-def get_number_costs_by_month(session, year):
+def get_number_costs_by_month_of_a_year(session, year):
     material_controller = MaterialController(session)
     month_costs = []
     for month in range(1, 13):
@@ -90,7 +103,7 @@ def get_number_costs_by_month(session, year):
         month_costs.append(total_costs)
     return month_costs
 
-def get_costs_by_month(session, year):
+def get_costs_by_month_of_a_year(session, year):
     material_controller = MaterialController(session)
     month_costs = []
     for month in range(1, 13):
@@ -99,8 +112,40 @@ def get_costs_by_month(session, year):
         month_costs.append(total_costs)
     return month_costs
 
+def get_sales_by_month_of_last_12_months(session):
+    sale_controller = SaleController(session)
+    month_sales = []
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    for i in range(12):
+        month = (current_month - i - 1) % 12 + 1
+        year = current_year if month <= current_month else current_year - 1
+        sales = sale_controller.get_month_sales(year, month)
+        total_sales = sum(sale.price for sale in sales)
+        month_sales.append(total_sales)
+    return month_sales[::-1]
+
+def get_costs_by_month_of_last_12_months(session):
+    material_controller = MaterialController(session)
+    month_costs = []
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+    for i in range(12):
+        month = (current_month - i - 1) % 12 + 1
+        year = current_year if month <= current_month else current_year - 1
+        purchases = material_controller.get_month_purchases(year, month)
+        total_costs = sum(purchase.price for purchase in purchases)
+        month_costs.append(total_costs)
+    return month_costs[::-1]
+
 def calculate_number_sales_by_dealer(session):
     dealer_controller = DealerController(session)
     dealers = dealer_controller.get_all_dealers()
     sales_count = {dealer.name: len(dealer_controller.get_dealer_sales(dealer.dealer_id)) for dealer in dealers}
     return sales_count
+
+def calculate_number_sales_by_year(session, year):
+    sale_controller = SaleController(session)
+    sales = sale_controller.get_year_sales(year)
+    total_sales = sum(1 for sale in sales)
+    return total_sales

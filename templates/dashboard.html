@@ -89,19 +89,37 @@
         <div class="kpi-container">
             <div class="kpi-card">
               <h3>Total Sales</h3>
-              <p id="totalSales">{{kpi_total_sales}} €</p>
+              <p id="totalSales">{{data_dashboard['kpi_total_sales']}} €</p>
             </div>
           
             <div class="kpi-card">
               <h3>Total Profit</h3>
-              <p id="totalProfit">{{kpi_total_profit}} €</p>
+              <p id="totalProfit">{{data_dashboard['kpi_total_profit']}} €</p>
             </div>
           
             <div class="kpi-card">
               <h3>Sold Items</h3>
-              <p id="soldItems">{{kpi_sold_items}}</p>
+              <p id="soldItems">{{data_dashboard['kpi_sold_items']}}</p>
             </div>
-          </div>
+        </div>
+
+        <div class="kpi-container">
+            <div class="kpi-card">
+              <h3>Sales in {{data_dashboard['current_year']}}</h3>
+              <p id="totalSales">{{data_dashboard['kpi_current_year_sales']}} €</p>
+            </div>
+          
+            <div class="kpi-card">
+              <h3>Profit in  {{data_dashboard['current_year']}}</h3>
+              <p id="totalProfit">{{data_dashboard['kpi_current_year_profit']}} €</p>
+            </div>
+          
+            <div class="kpi-card">
+              <h3>Sold Items in  {{data_dashboard['current_year']}}</h3>
+              <p id="soldItems">{{data_dashboard['kpi_current_year_items']}}</p>
+            </div>
+        </div>
+
 
         <div class="row">
             <div class="col-md-12" style="max-width: 500px; margin: auto;">    
@@ -133,15 +151,15 @@
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: {{ months|tojson }},
+            labels: {{ data_dashboard['months']|tojson }},
             datasets: [
             {
                 label: 'Sales (€)',
-                data: {{ sales_by_month|tojson }},
+                data: {{ data_dashboard['sales_by_month']|tojson }},
                 type: 'bar',
             },{
                 label: 'Costs (€)',
-                data: {{ costs_by_month|tojson }},
+                data: {{ data_dashboard['costs_by_month']|tojson }},
                 type: 'bar'
             }]
         },
@@ -160,10 +178,10 @@
     new Chart(ctx2, {
         type: 'doughnut',
         data: {
-            labels: {{ product_name|tojson }},
+            labels: {{ data_dashboard['product_name']|tojson }},
             datasets: [{
                 label: 'Sales',
-                data: {{ number_sales_by_product|tojson }},
+                data: {{ data_dashboard['number_sales_by_product']|tojson }},
             }]
         },
         options: {
@@ -182,10 +200,10 @@
     new Chart(ctx3, {
         type: 'polarArea',
         data: {
-            labels: {{ dealers|tojson }},
+            labels: {{ data_dashboard['dealers']|tojson }},
             datasets: [{
                 label: 'Sales',
-                data: {{ sales_by_dealer|tojson }},
+                data: {{ data_dashboard['sales_by_dealer']|tojson }},
             }]
         },
         options: {
