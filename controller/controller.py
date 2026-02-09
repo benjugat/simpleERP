@@ -237,6 +237,10 @@ class DealerController:
     def get_dealer_sales(self, dealer_id):
         return self.session.query(Sale).filter_by(dealer_id=dealer_id).all()
     
+    def get_dealer_sales_by_year(self, dealer_id, year):
+        return self.session.query(Sale).filter_by(dealer_id=dealer_id).filter(Sale.date.between(f'{year}-01-01', f'{year}-12-31')).all()
+    
+    
 class SaleController:
     def __init__(self, session):
         self.session = session

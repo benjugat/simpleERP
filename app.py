@@ -10,6 +10,7 @@ from modules.modules import *
 
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -516,6 +517,11 @@ def edit_material_purchase(material_id, purchase_id):
 def dealers():
     dealer_controller = DealerController(session)
     dealers = dealer_controller.get_all_dealers()
+
+    current_year = datetime.now().year
+    for dealer in dealers:
+        current_year_sales = dealer_controller.get_dealer_sales_by_year(dealer.dealer_id, current_year)
+        dealer.current_year_sales = current_year_sales
     
     return render_template('dealers.html', dealers=dealers)
 

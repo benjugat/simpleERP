@@ -60,7 +60,8 @@
                     <tr>
                         <th>ID</th>
                         <th>Dealer Name</th>
-                        <th>Sales</th>
+                        <th>Total Sales</th>
+                        <th>Current Year Sales</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -70,6 +71,7 @@
                         <td>{{ dealer.dealer_id }}</td>
                         <td>{{ dealer.name }}</td>
                         <td>{{ dealer.sales|length}}</td>
+                        <td>{{ dealer.current_year_sales|length}}</td>
                         <td>
                             <a href="/dealer/{{ dealer.dealer_id }}/sale/add" class="btn btn-success btn-sm">Register a Sale</a>
                             <a href="/dealer/{{ dealer.dealer_id }}/sales" class="btn btn-primary btn-sm">View sales</a>
