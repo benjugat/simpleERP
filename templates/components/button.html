@@ -1,0 +1,91 @@
+{% macro button(text='', type='button', variant='primary', size='md', href='', onclick='', class='', icon='') %}
+{% if href %}
+<a href="{{ href }}" class="{{ button_classes(variant, size) }} {{ class }}">
+    {% if icon %}<span class="mr-2">{{ icon|safe }}</span>{% endif %}{{ text }}
+</a>
+{% else %}
+<button type="{{ type }}" {% if onclick %}onclick="{{ onclick }}"{% endif %} class="{{ button_classes(variant, size) }} {{ class }}">
+    {% if icon %}<span class="mr-2">{{ icon|safe }}</span>{% endif %}{{ text }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro button_link(text, href, variant='primary', size='md', class='', icon='') %}
+<a href="{{ href }}" class="{{ button_classes(variant, size) }} {{ class }}">
+    {% if icon %}<span class="mr-2">{{ icon|safe }}</span>{% endif %}{{ text }}
+</a>
+{% endmacro %}
+
+{% macro btn_primary(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='submit', variant='primary', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_secondary(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='button', variant='secondary', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_success(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='submit', variant='success', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_danger(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='button', variant='danger', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_warning(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='button', variant='warning', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_outline(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='button', variant='outline', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_sm(text, href='', onclick='', class='', icon='') %}
+{{ button(text=text, type='button', variant='primary', size='sm', href=href, onclick=onclick, class=class, icon=icon) }}
+{% endmacro %}
+
+{% macro btn_icon(icon, href='', onclick='', variant='primary', size='md', title='', class='') %}
+{% if href %}
+<a href="{{ href }}" class="{{ icon_button_classes(variant, size) }} {{ class }}" {% if title %}title="{{ title }}"{% endif %}>
+    {{ icon|safe }}
+</a>
+{% else %}
+<button type="button" {% if onclick %}onclick="{{ onclick }}"{% endif %} class="{{ icon_button_classes(variant, size) }} {{ class }}" {% if title %}title="{{ title }}"{% endif %}>
+    {{ icon|safe }}
+</button>
+{% endif %}
+{% endmacro %}
+
+{% filter button_classes(variant, size) %}
+{% set variants = {
+    'primary': 'bg-primary text-white hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2',
+    'secondary': 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 focus:ring-2 focus:ring-slate-400 focus:ring-offset-2',
+    'success': 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2',
+    'danger': 'bg-rose-600 text-white hover:bg-rose-700 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2',
+    'warning': 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-2 focus:ring-amber-400 focus:ring-offset-2',
+    'outline': 'border-2 border-primary text-primary hover:bg-primary hover:text-white focus:ring-2 focus:ring-primary focus:ring-offset-2',
+    'ghost': 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:ring-2 focus:ring-slate-400 focus:ring-offset-2'
+} %}
+{% set sizes = {
+    'sm': 'px-3 py-1.5 text-sm',
+    'md': 'px-4 py-2 text-sm',
+    'lg': 'px-6 py-3 text-base'
+} %}
+{{ variants[variant] or variants.primary }} {{ sizes[size] or sizes.md }} inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-150 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed
+{% endfilter %}
+
+{% filter icon_button_classes(variant, size) %}
+{% set variants = {
+    'primary': 'text-primary hover:bg-primary-light dark:hover:bg-primary-dark/20',
+    'secondary': 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700',
+    'success': 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
+    'danger': 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20',
+    'warning': 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+} %}
+{% set sizes = {
+    'sm': 'p-1',
+    'md': 'p-2',
+    'lg': 'p-3'
+} %}
+{{ variants[variant] or variants.secondary }} {{ sizes[size] or sizes.md }} rounded-lg transition-colors duration-150
+{% endfilter %}

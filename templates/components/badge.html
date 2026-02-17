@@ -1,0 +1,40 @@
+{% macro badge(text, variant='default', size='md') %}
+<span class="{{ badge_classes(variant, size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro badge_success(text, size='md') %}
+<span class="{{ badge_classes('success', size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro badge_warning(text, size='md') %}
+<span class="{{ badge_classes('warning', size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro badge_danger(text, size='md') %}
+<span class="{{ badge_classes('danger', size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro badge_info(text, size='md') %}
+<span class="{{ badge_classes('info', size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% macro badge_default(text, size='md') %}
+<span class="{{ badge_classes('default', size) }}">{{ text }}</span>
+{% endmacro %}
+
+{% filter badge_classes(variant, size) %}
+{% set variants = {
+    'default': 'bg-slate-100 text-slate-700',
+    'primary': 'bg-primary-light text-primary',
+    'success': 'bg-emerald-100 text-emerald-700',
+    'warning': 'bg-amber-100 text-amber-700',
+    'danger': 'bg-rose-100 text-rose-700',
+    'info': 'bg-blue-100 text-blue-700'
+} %}
+{% set sizes = {
+    'sm': 'px-2 py-0.5 text-xs',
+    'md': 'px-2.5 py-1 text-xs',
+    'lg': 'px-3 py-1 text-sm'
+} %}
+inline-flex items-center font-medium rounded-full {{ variants[variant] or variants.default }} {{ sizes[size] or sizes.md }}
+{% endfilter %}

@@ -1,68 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Config Product - SimpleERP</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .container {
-            margin-top: 50px;
-        }
-        .card {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border: none;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-            border: none;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header text-center bg-primary text-white">
-                        <h5>Config Product</h5>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="/product/{{ product.product_id }}/config">
-                            {% for material in show_materials %}
-                            <div class="mb-3">
-                                <label for="name" class="form-label">{{material.name}}</label>
-                                <input type="number" class="form-control" id="M{{material.material_id}}" name="{{material.material_id}}" step="1" value="{{material.quantity}}" required>
-                            </div>
-                            
-                            {% endfor %}
-                            <div class="d-flex justify-content-between">
-                                <a href="/products" class="btn btn-secondary">Cancel</a>
-                                <button type="submit" class="btn btn-primary">Save changes</button>
-                            </div>
-                        </form>
-                        
-                    </div>
-                </div>
-            </div>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Configurar Materiales - {{ product.name }} - SimpleERP{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-slate-400">/</span>
+<a href="/" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Inicio</a>
+<span class="text-slate-400">/</span>
+<a href="/products" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Productos</a>
+<span class="text-slate-400">/</span>
+<span class="text-slate-700 dark:text-slate-200 font-medium">{{ product.name }} - Materiales</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Configurar Materiales</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Producto: {{ product.name }}</p>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <!-- Form -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <form method="POST" action="/product/{{ product.product_id }}/config" class="space-y-4">
+            {% for material in show_materials %}
+            <div class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                <div class="flex-1">
+                    <label for="M{{ material.material_id }}" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {{ material.name }}
+                    </label>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Stock actual: {{ material.stock|default('N/A') }}</p>
+                </div>
+                <div class="w-32">
+                    <input type="number" id="M{{ material.material_id }}" name="{{ material.material_id }}" 
+                        step="1" min="0" value="{{ material.quantity }}" required
+                        class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm text-right">
+                </div>
+            </div>
+            {% endfor %}
 
-</html>
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <a href="/products" class="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-dark transition-colors">
+                    Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

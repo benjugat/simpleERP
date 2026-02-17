@@ -1,0 +1,51 @@
+{% macro card(title='', subtitle='', class='') %}
+<div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 {{ class }}">
+    {% if title %}
+    <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-1">{{ title }}</h3>
+    {% endif %}
+    {% if subtitle %}
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">{{ subtitle }}</p>
+    {% endif %}
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+{% macro card_kpi(title, value, icon='', color='primary', trend='', trend_value='') %}
+<div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+        <div>
+            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ title }}</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ value }}</p>
+            {% if trend and trend_value %}
+            <p class="text-xs mt-2 {% if trend == 'up' %}text-emerald-600 dark:text-emerald-400{% elif trend == 'down' %}text-red-600 dark:text-red-400{% endif %}">
+                {% if trend == 'up' %}↑{% elif trend == 'down' %}↓{% endif %} {{ trend_value }}
+            </p>
+            {% endif %}
+        </div>
+        {% if icon %}
+        <div class="w-12 h-12 bg-{{ color }}-100 dark:bg-{{ color }}-900/30 rounded-lg flex items-center justify-center">
+            <span class="text-{{ color }}-600 dark:text-{{ color }}-400">{{ icon|safe }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro card_stat(title, value, subtitle='', icon='', color='primary') %}
+<div class="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">{{ title }}</p>
+            <p class="text-xl font-bold text-slate-900 dark:text-white mt-1">{{ value }}</p>
+            {% if subtitle %}
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ subtitle }}</p>
+            {% endif %}
+        </div>
+        {% if icon %}
+        <div class="w-10 h-10 bg-{{ color }}-50 dark:bg-{{ color }}-900/20 rounded-lg flex items-center justify-center">
+            <span class="text-{{ color }}-600 dark:text-{{ color }}-400">{{ icon|safe }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
