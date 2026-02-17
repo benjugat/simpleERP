@@ -40,13 +40,14 @@ def index():
     lctx2 = ["Costs", "Sales", "Benefits"]
     vctx2 = [c, s, b]
 
-    sales_count = calculate_sales_by_product(session)
+    sales_by_type = calculate_sales_by_product_type(session)
     lctx3 = list()
     vctx3 = list()
 
-    for k in sales_count.keys():
-        lctx3.append(k)
-        vctx3.append(sales_count[k])
+    for k in sales_by_type.keys():
+        if k:
+            lctx3.append(k)
+            vctx3.append(sales_by_type[k])
 
     return render_template('index.html', lctx1=lctx1, vctx1=vctx1, lctx2=lctx2, vctx2=vctx2, lctx3=lctx3, vctx3=vctx3)
 
