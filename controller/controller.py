@@ -278,3 +278,11 @@ class SaleController:
         else:
             end_date = f'{year}-{month + 1:02d}-01'
         return self.session.query(Sale).filter(Sale.date.between(start_date, end_date)).all()
+    
+def MaterialPurchaseController():
+    def __init__(self, session):
+        self.session = session
+    
+    def get_all_purchases(self):
+        return self.session.query(MaterialPurchase).all()
+    

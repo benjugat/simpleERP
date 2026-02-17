@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 from model.model import Base
-from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController
 from modules.modules import *
 
 from dotenv import load_dotenv
@@ -437,6 +437,7 @@ def purchase_material(material_id):
 @app.route('/material/<int:material_id>/purchase/')
 def view_material_purchases(material_id):
     material_controller = MaterialController(session)
+    purchase_controller = MaterialPurchaseController(session)
     if material_id:
         material = material_controller.get_material(material_id)
         
@@ -447,10 +448,7 @@ def view_material_purchases(material_id):
         material_name = material.name
     else:
         purchases =[]
-        materials = material_controller.get_all_materials()
-        for material in materials:
-            if material.purchases:
-                purchases += material.purchases
+        purchases = purchase_controller.get_all_purchases()
         material_name = "All materials"
     
     return render_template('view_material_purchases.html', material_name=material_name, purchases=purchases)
