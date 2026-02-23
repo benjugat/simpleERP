@@ -34,12 +34,14 @@
             </div>
             <select id="typeFilter" class="px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                 <option value="">Todos los tipos</option>
-                {% set types = [] %}
-                {% for product in products %}
-                    {% if product.product_type and product.product_type not in types %}
-                        {% set types = types + [product.product_type] %}
-                        <option value="{{ product.product_type }}">{{ product.product_type }}</option>
-                    {% endif %}
+                {% set types = products
+                    | map(attribute='product_type')
+                    | select
+                    | unique
+                    | list
+                %}
+                {% for t in types %}  
+                    <option value="{{ t }}">{{ t }}</option>
                 {% endfor %}
             </select>
         </div>

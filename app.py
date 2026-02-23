@@ -530,7 +530,7 @@ def dealers():
         current_year_sales = dealer_controller.get_dealer_sales_by_year(dealer.dealer_id, current_year)
         dealer.current_year_sales = current_year_sales
     
-    return render_template('dealers.html', dealers=dealers)
+    return render_template('dealers.html', dealers=dealers, current_year=current_year)
 
 
 @app.route('/dealer/add', methods=['GET', 'POST'])
