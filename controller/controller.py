@@ -294,8 +294,8 @@ class ModelController:
     def get_all_models(self):
         return self.session.query(Model).all()
     
-    def get_model(self, name):
-        return self.session.query(Model).filter_by(name=name).first()
+    def get_model(self, model_id):
+        return self.session.query(Model).filter_by(model_id=model_id).first()
     
     def add_model(self, name, description, filepath):
         new_model = Model(name=name, description=description, filepath=filepath)
