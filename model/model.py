@@ -103,4 +103,27 @@ class Sale(Base):
         return f"<Sale(sale_id={self.sale_id}, price={self.price}, date={self.date})>"
 
 
+class Model(Base):
+    __tablename__ = 'models'
+    
+    model_id = Column(Integer, primary_key=True)
+    name = Column(String)
+    description = Column(String)
+    filepath = Column(String)
+    gcodes = relationship("GCode", back_populates="model", cascade="all, delete-orphan")
 
+    def __repr__(self):
+        return f"<Model(model_id={self.model_id}, name={self.name})>"
+    
+
+class GCode(Base):
+    __tablename__ = 'gcodes'
+    
+    gcode_id = Column(Integer, primary_key=True)
+    model_id = Column(Integer, ForeignKey('models.model_id'), nullable=False)
+    filepath = Column(String)
+
+    model = relationship("Model", back_populates="gcodes")
+
+    def __repr__(self):
+        return f"<GCode(gcode_id={self.gcode_id}, model_name={self.model.name})>"

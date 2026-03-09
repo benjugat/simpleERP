@@ -1,4 +1,4 @@
-from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial
+from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial, Model, GCode
 
 
 class ProductController:
@@ -285,4 +285,47 @@ class MaterialPurchaseController:
     
     def get_all_purchases(self):
         return self.session.query(MaterialPurchase).all()
+
+
+class ModelController:
+    def __init__(self, session):
+        self.session = session
+
+    def get_all_models(self):
+        return self.session.query(Model).all()
     
+    def get_model(self, name):
+        return self.session.query(Model).filter_by(name=name).first()
+    
+    def add_model(self, name, description, filepath):
+        new_model = Model(name=name, description=description, filepath=filepath)
+        self.session.add(new_model)
+        self.session.commit()
+        return new_model
+    
+    def update_model(self, model_id, **kwargs):
+        model = self.session.query(Model).filter_by(model_id=model_id).first()
+        if not model:
+            return None
+        for key, value in kwargs.items():
+            setattr(model, key, value)
+        self.session.commit()
+        return model
+    
+    def delete_model(self, model_id):
+        model = self.session.query(Model).filter_by(model_id=model_id).first()
+        if not model:
+            return False
+        self.session.delete(model)
+        self.session.commit()
+        return True
+
+class GCodeController:
+    def __init__(self, session):
+        self.session = session
+
+    def get_gcode(self, gcode_id):
+        return self.session.query(GCode).filter_by(gcode_id=gcode_id).first()
+    
+    def get_all_gcodes(self):
+        return self.session.query(GCode).all()

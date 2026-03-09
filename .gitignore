@@ -1,3 +1,4 @@
+static/models/*
 .env
 *.db
 .venv/

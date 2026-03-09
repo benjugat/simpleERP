@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 from model.model import Base
-from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController, ModelController
 from modules.modules import *
 
 from dotenv import load_dotenv
@@ -515,6 +515,55 @@ def edit_material_purchase(material_id, purchase_id):
         return redirect(url_for('view_material_purchases', material_id=material_id))
     
     return render_template('edit_material_purchase.html', material=material, purchase=purchase)
+
+########################
+#       MODELOS        #
+########################
+@app.route('/models')
+def models():
+    model_controller = ModelController(session)
+    models = model_controller.get_all_models()
+    return render_template('models.html', models=models)
+
+
+@app.route('/model/add', methods=['GET', 'POST'])
+def add_model():
+    if request.method == 'POST':
+        
+        # Obtener datos del formulario
+        name = request.form['name']
+        description = request.form['description']
+        file = request.files['file']
+        file_path = os.path.join('static/models', file.filename)
+        file.save(file_path)
+        
+        model_controller = ModelController(session)
+        model = model_controller.add_model(name, description, file_path)
+        print(f"Model added: {model}")
+        
+        # Redirigir a la página principal
+        return redirect(url_for('models'))
+    
+    return render_template('add_model.html')
+
+@app.route('/model/<int:model_id>/view')
+def view_model(model_id):
+    model_controller = ModelController(session)
+    model = model_controller.get_model(model_id)
+    if not model:
+        return "Model not found", 404
+    
+    return render_template('view_model.html', model=model)
+
+######################
+#       GCODE        #
+######################
+@app.route('/gcodes')
+def gcodes():
+    return render_template('gcode.html')
+
+
+
 
 ############################
 #   DEALER MANAGEMENT      #
