@@ -1,5 +1,8 @@
 from controller.controller import ProductController, MaterialController, DealerController, SaleController
 from datetime import datetime
+from gcodeparser import GcodeParser
+import math
+import re
 
 def calculate_number_sales_by_product_id(session, product_id):
     product_controller = ProductController(session)
@@ -149,3 +152,68 @@ def calculate_number_sales_by_year(session, year):
     sales = sale_controller.get_year_sales(year)
     total_sales = sum(1 for sale in sales)
     return total_sales
+
+
+def calculate_print_time(gcode_content):
+    parser = GcodeParser(gcode_content)
+    commands = list(parser)
+    x, y, z, e = 0.0, 0.0, 0.0, 0.0
+    total_time = 0.0
+    
+    for cmd in commands:
+        if cmd['cmd'] in ('G0', 'G1'):  # Movimientos rápidos/lineales
+            params = cmd.get('params', {})
+            
+            prev_x, prev_y, prev_z, prev_e = x, y, z, e
+            
+            x = params.get('X', x)
+            y = params.get('Y', y)
+            z = params.get('Z', z)
+            e = params.get('E', e)
+            
+            f = params.get('F', 0)
+            if f == 0:
+                # Busca F en comandos previos (simplificado)
+                continue
+                
+            dist = math.sqrt(
+                (x - prev_x)**2 +
+                (y - prev_y)**2 +
+                (z - prev_z)**2 +
+                (e - prev_e)**2
+            )
+            
+            total_time += dist / (f / 60)  # f en mm/min -> seg
+    
+    # Formato HH:MM:SS
+    hours = int(total_time // 3600)
+    mins = int((total_time % 3600) // 60)
+    secs = int(total_time % 60)
+    time_str = f"{hours:02d}:{mins:02d}:{secs:02d}"
+    return time_str
+
+def calculate_weight(gcode_content):
+    DENSITIES = {'PETG': 1.27, 'PLA': 1.24}
+    if not filament_type:
+        if re.search(r'PETG|petg', gcode_content, re.I):
+            filament_type = 'PETG'
+        else:
+            filament_type = 'PLA'
+    density = DENSITIES.get(filament_type.upper(), 1.24)
+    diam = 1.75  # mm estándar
+    parser = GcodeParser(gcode_content)
+    total_extrusion = 0.0
+    prev_e = 0.0
+    
+    for cmd in parser:
+        if cmd['cmd'] in ('G0', 'G1') and 'E' in cmd.get('params', {}):
+            curr_e = cmd['params']['E']
+            total_extrusion += abs(curr_e - prev_e)
+            prev_e = curr_e
+    
+    r = diam / 20  # cm
+    volume = (total_extrusion / 10) * math.pi * (r ** 2)
+    weight = round(volume * density, 1)
+    
+    print(f"Detectado: {filament_type}, Peso: {weight}g")  # Debug
+    return weight

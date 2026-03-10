@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from datetime import datetime
 
 from model.model import Base
-from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController, ModelController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController, ModelController, GCodeController
 from modules.modules import *
 
 from dotenv import load_dotenv
@@ -555,15 +555,86 @@ def view_model(model_id):
     
     return render_template('view_model.html', model=model)
 
+@app.route('/model/<int:model_id>/edit', methods=['GET', 'POST'])
+def edit_model(model_id):
+    model_controller = ModelController(session)
+    model = model_controller.get_model(model_id)
+    
+    if not model:
+        return "Model not found", 404
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        description = request.form['description']
+        
+        kwargs = {
+            'name': name,
+            'description': description
+        }
+        
+        updated_model = model_controller.update_model(model_id, **kwargs)
+        if updated_model:
+            print(f"Model updated: {updated_model}")
+        else:
+            print("Model not found.")
+        
+        return redirect(url_for('models'))
+    
+    return render_template('edit_model.html', model=model)
+
+@app.route('/model/<int:model_id>/delete', methods=['GET'])
+def delete_model(model_id):
+    model_controller = ModelController(session)
+    if model_controller.delete_model(model_id):
+        print("Model deleted.")
+    else:
+        print("Model not found.")
+    
+    return redirect(url_for('models'))
+
 ######################
 #       GCODE        #
 ######################
-@app.route('/gcodes')
-def gcodes():
-    return render_template('gcode.html')
+@app.route('/gcodes', defaults={'model_id': None})
+@app.route('/model/<int:model_id>/gcodes')
+def gcodes(model_id):
+    if model_id:
+        model_controller = ModelController(session)
+        model = model_controller.get_model(model_id)
+        if not model:
+            return "Model not found", 404
+        gcodes = model_controller.get_model_gcodes(model_id)
+    else:
+        gcode_controller = GCodeController(session)
+        gcodes = gcode_controller.get_all_gcodes()
+    return render_template('gcodes.html', gcodes=gcodes)
 
+@app.route('/model/<int:model_id>/gcode/add', methods=['GET', 'POST'])
+def add_gcode(model_id):
+    model_controller = ModelController(session)
+    model = model_controller.get_model(model_id)
+    
+    if not model:
+        return "Model not found", 404
 
+    if request.method == 'POST':
+        file = request.files['file']
+        material = request.form['material']
 
+        if file.filename == '':
+            return "No file selected", 400
+        
+        gcode_content = file.read().decode('utf-8')
+        
+        print_time = calculate_print_time(gcode_content)
+        weight = calculate_weight(gcode_content)
+        model_controller.add_gcode_to_model(model_id, file.filename, material, print_time, weight)
+
+        print(f"GCode added: {gcode}")
+
+        return redirect(url_for('gcodes', model_id=model_id))
+    
+    return render_template('add_gcode.html', model=model)
 
 ############################
 #   DEALER MANAGEMENT      #

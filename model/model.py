@@ -121,8 +121,10 @@ class GCode(Base):
     
     gcode_id = Column(Integer, primary_key=True)
     model_id = Column(Integer, ForeignKey('models.model_id'), nullable=False)
-    filepath = Column(String)
-
+    name = Column(String)
+    material = Column(String)
+    print_time = Column(Integer)  # Tiempo de impresión en minutos
+    weight = Column(Numeric(10, 2), nullable=False)  # Peso del material en gramos
     model = relationship("Model", back_populates="gcodes")
 
     def __repr__(self):

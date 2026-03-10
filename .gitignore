@@ -1,4 +1,5 @@
 static/models/*
+static/gcodes/*
 .env
 *.db
 .venv/

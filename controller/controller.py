@@ -319,6 +319,21 @@ class ModelController:
         self.session.delete(model)
         self.session.commit()
         return True
+    
+    def get_model_gcodes(self, model_id):
+        model = self.get_model(model_id)
+        if not model:
+            return None
+        return model.gcodes
+
+    def add_gcode_to_model(self, model_id, name, material, print_time, weight):
+        model = self.get_model(model_id)
+        if not model:
+            return None
+        new_gcode = GCode(model_id=model_id, name=name, material=material, print_time=print_time, weight=weight)
+        self.session.add(new_gcode)
+        self.session.commit()
+        return new_gcode
 
 class GCodeController:
     def __init__(self, session):
@@ -329,3 +344,4 @@ class GCodeController:
     
     def get_all_gcodes(self):
         return self.session.query(GCode).all()
+    
