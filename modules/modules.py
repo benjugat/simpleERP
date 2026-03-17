@@ -156,64 +156,90 @@ def calculate_number_sales_by_year(session, year):
 
 def calculate_print_time(gcode_content):
     parser = GcodeParser(gcode_content)
-    commands = list(parser)
+    commands = parser.lines
     x, y, z, e = 0.0, 0.0, 0.0, 0.0
     total_time = 0.0
-    
+    current_feed = 0.0  # F actual
+        
     for cmd in commands:
-        if cmd['cmd'] in ('G0', 'G1'):  # Movimientos rápidos/lineales
-            params = cmd.get('params', {})
+        # DEBUG: print(cmd.command, cmd.params)
+        
+        # cmd.command es TUPLA ('G', 0) o ('G', 1)
+        if isinstance(cmd.command, tuple) and cmd.command[0] == 'G':
+            g_code = int(cmd.command[1])
             
-            prev_x, prev_y, prev_z, prev_e = x, y, z, e
-            
-            x = params.get('X', x)
-            y = params.get('Y', y)
-            z = params.get('Z', z)
-            e = params.get('E', e)
-            
-            f = params.get('F', 0)
-            if f == 0:
-                # Busca F en comandos previos (simplificado)
-                continue
+            if g_code in (0, 1):  # G0 o G1
+                params = cmd.params
                 
-            dist = math.sqrt(
-                (x - prev_x)**2 +
-                (y - prev_y)**2 +
-                (z - prev_z)**2 +
-                (e - prev_e)**2
-            )
-            
-            total_time += dist / (f / 60)  # f en mm/min -> seg
+                # Feedrate (puede venir en misma línea)
+                new_feed = params.get('F', current_feed)
+                if new_feed > 0:
+                    current_feed = new_feed
+                
+                # Posiciones nuevas (si no hay, mantener anteriores)
+                new_x = params.get('X', x)
+                new_y = params.get('Y', y)
+                new_z = params.get('Z', z)
+                new_e = params.get('E', e)
+                
+                # Solo calcular si hay movimiento Y feedrate
+                if current_feed > 0 and (new_x != x or new_y != y or new_z != z):
+                    dist = math.sqrt(
+                        (new_x - x)**2 + (new_y - y)**2 + 
+                        (new_z - z)**2 + (new_e - e)**2
+                    )
+                    
+                    time_segment = dist / (current_feed / 60)  # mm/min → seg
+                    total_time += time_segment
+                                    
+                # Actualizar posición
+                x, y, z, e = new_x, new_y, new_z, new_e
     
     # Formato HH:MM:SS
     hours = int(total_time // 3600)
     mins = int((total_time % 3600) // 60)
     secs = int(total_time % 60)
     time_str = f"{hours:02d}:{mins:02d}:{secs:02d}"
+    
     return time_str
 
-def calculate_weight(gcode_content):
+def calculate_weight(gcode_content, filament_type=None):
     DENSITIES = {'PETG': 1.27, 'PLA': 1.24}
+    
+    # Auto-detectar tipo
     if not filament_type:
         if re.search(r'PETG|petg', gcode_content, re.I):
             filament_type = 'PETG'
         else:
             filament_type = 'PLA'
-    density = DENSITIES.get(filament_type.upper(), 1.24)
-    diam = 1.75  # mm estándar
+    
+    density = DENSITIES.get(filament_type, 1.24)
+    diam = 1.75  # mm
+    r = diam / 2 / 10  # cm (radio)
+    
     parser = GcodeParser(gcode_content)
     total_extrusion = 0.0
     prev_e = 0.0
+        
+    for cmd in parser.lines:
+        
+        # FIX 1: cmd.command es TUPLA ('G', 1)
+        if isinstance(cmd.command, tuple) and cmd.command[0] == 'G':
+            g_code = cmd.command[1]
+            
+            # FIX 2: Solo G0/G1 con E (extrusión)
+            if g_code in (0, 1) and 'E' in cmd.params:
+                curr_e = float(cmd.params['E'])
+                extrusion = abs(curr_e - prev_e)
+                total_extrusion += extrusion
+                prev_e = curr_e
+                
+                print(f"G{g_code} E{curr_e:.3f} → extrusión: {extrusion:.3f}mm")
     
-    for cmd in parser:
-        if cmd['cmd'] in ('G0', 'G1') and 'E' in cmd.get('params', {}):
-            curr_e = cmd['params']['E']
-            total_extrusion += abs(curr_e - prev_e)
-            prev_e = curr_e
+    # Volumen (mm³) = π * r² * longitud_extrusion
+    r_mm = diam / 2  # mm
+    volume_mm3 = math.pi * (r_mm ** 2) * total_extrusion
+    weight_g = round((volume_mm3 / 1000) * density, 1)  # g
     
-    r = diam / 20  # cm
-    volume = (total_extrusion / 10) * math.pi * (r ** 2)
-    weight = round(volume * density, 1)
-    
-    print(f"Detectado: {filament_type}, Peso: {weight}g")  # Debug
-    return weight
+    print(f"Filamento: {filament_type} | Extrusión total: {total_extrusion:.1f}mm | Volumen: {volume_mm3/1000:.1f}cm³ | Peso: {weight_g}g")
+    return weight_g

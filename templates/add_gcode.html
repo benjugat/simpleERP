@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva GCode - {{ model.name }} - SimpleERP{% endblock %}
+
+{% block breadcrumb %}
+<span class="text-slate-400">/</span>
+<a href="/" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Inicio</a>
+<span class="text-slate-400">/</span>
+<a href="/models" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Distribuidores</a>
+<span class="text-slate-400">/</span>
+<a href="/model/{{ model.model_id }}/gcodes" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">{{ dealer.name }}</a>
+<span class="text-slate-400">/</span>
+<span class="text-slate-700 dark:text-slate-200 font-medium">Nuevo GCode</span>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    .select2-container--default .select2-selection--multiple {
+        border-color: #E2E8F0;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        min-height: 42px;
+    }
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        border-color: #4F46E5;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .upload-zone {
+        width: 100%; height: 150px; 
+        border: 2px dashed #6b7280; border-radius: 8px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: rgba(243, 244, 246, 0.5); color: #6b7280;
+        transition: all 0.3s ease; cursor: pointer; margin-bottom: 10px;
+    }
+    .dark .upload-zone {
+        border-color: #4b5563; background: rgba(75, 85, 99, 0.2); color: #9ca3af;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: #10b981; background: rgba(16, 185, 129, 0.08);
+        color: #059669; transform: translateY(-1px);
+    }
+    .dark .upload-zone:hover, .dark .upload-zone.dragover {
+        background: rgba(16, 185, 129, 0.15); color: #34d399;
+    }
+    .upload-zone svg { width: 40px; height: 40px; margin-bottom: 8px; opacity: 0.6; }
+    #filelist { 
+        min-height: 60px; border: 1px dashed #d1d5db; border-radius: 8px; 
+        padding: 16px; background: #f9fafb; transition: all 0.2s ease;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .dark #filelist { 
+        border-color: #4b5563; background: #1f2937; 
+    }
+    .file-selected {
+        border-color: #10b981 !important; background: #ecfdf5 !important;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+    }
+    .dark .file-selected { 
+        background: rgba(16, 185, 129, 0.15) !important;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+    }
+    .file-item { 
+        display: flex; justify-content: space-between; align-items: center;
+        width: 100%; padding: 12px 16px; background: #f0fdf4; 
+        border-radius: 6px; border-left: 3px solid #10b981;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .dark .file-item { 
+        background: rgba(16, 185, 129, 0.12); 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .file-info { flex: 1; }
+    .file-info strong { color: #065f46; font-size: 15px; display: block; }
+    .dark .file-info strong { color: #34d399; }
+    .file-info small { color: #6b7280; font-size: 13px; }
+    .dark .file-info small { color: #9ca3af; }
+    .remove-file { 
+        background: #f87171; color: white; border: none; 
+        padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        font-weight: 500; transition: all 0.2s;
+    }
+    .remove-file:hover { background: #ef4444; transform: translateY(-1px); }
+    .no-file { 
+        color: #6b7280; font-style: italic; text-align: center; 
+        padding: 20px; width: 100%;
+    }
+    .dark .no-file { color: #9ca3af; }
+</style>
+
+<div class="max-w-2xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Nuevo Laminado</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Sube tu fichero GCODE</p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-6">
+        <form method="POST" enctype="multipart/form-data" id="modelForm">
+
+            <!-- Material -->
+            <div class="mb-6">
+                <label for="material" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Material
+                </label>
+                <select id="material" name="material_id" required class="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+                    <option value="" disabled selected>Selecciona un filamento</option>
+                    {% for material in materials %}
+                    <option value="{{ material.material_id }}">{{ material.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- File Upload -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3 font-semibold">
+                    Fichero GCODE <span class="text-rose-500">*</span>
+                </label>
+                <div class="upload-zone" id="dropzone">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    <p class="font-medium mb-1"><strong>Arrastra GCODE aquí</strong></p>
+                    <p class="text-xs">o haz clic para seleccionar (.gcode)</p>
+                    <input type="file" id="fileinput" name="file" accept=".gcode" style="display: none;">
+                </div>
+                
+                <div id="filelist">
+                    <input type="hidden" name="file" id="file">
+                    <div class="no-file">
+                        📎 Selecciona o arrastra un archivo GCODE
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
+                <a href="/models" class="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-all shadow-sm">
+                    Cancelar
+                </a>
+                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none" id="submitBtn" disabled>
+                    <span class="inline-flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Crear laminado
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const dropzone = document.getElementById('dropzone');
+    const fileinput = document.getElementById('fileinput');
+    const filelist = document.getElementById('filelist');
+    const fileHidden = document.getElementById('file');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    let selectedFile = null;
+    
+    // Click para selector
+    dropzone.addEventListener('click', () => fileinput.click());
+    
+    // Drag & Drop
+    ['dragenter', 'dragover', 'dragleave'].forEach(event => {
+        dropzone.addEventListener(event, e => {
+            e.preventDefault(); e.stopPropagation();
+        });
+    });
+    
+    dropzone.addEventListener('dragover', () => dropzone.classList.add('dragover'));
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    
+    dropzone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const files = Array.from(e.dataTransfer.files);
+        handleFile(files[0]);
+    });
+    
+    fileinput.addEventListener('change', e => handleFile(e.target.files[0]));
+    
+    function handleFile(file) {
+        if (!file?.name.match(/\.(gcode)$/i)) return;
+        
+        selectedFile = file;
+        fileHidden.value = file.name;
+        
+        filelist.innerHTML = `
+            <div class="file-item">
+                <div class="file-info">
+                    <strong>${file.name}</strong>
+                    <small>${formatSize(file.size)}</small>
+                </div>
+                <button type="button" class="remove-file" onclick="removeFile()" title="Quitar archivo">
+                    ❌
+                </button>
+            </div>
+        `;
+        
+        submitBtn.disabled = false;
+    }
+    
+    function removeFile() {
+        selectedFile = null;
+        fileHidden.value = '';
+        filelist.innerHTML = '<input type="hidden" name="file" id="file"><div class="no-file">📎 Selecciona o arrastra un archivo GCODE</div>';
+        submitBtn.disabled = true;
+        fileinput.value = '';
+    }
+    
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+        return (bytes/1024/1024).toFixed(1) + ' MB';
+    }
+    
+    // Prevenir submit sin archivo
+    document.getElementById('modelForm').addEventListener('submit', e => {
+        if (!selectedFile) {
+            e.preventDefault();
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm';
+            errorDiv.textContent = 'Por favor selecciona un archivo GCODE';
+            dropzone.parentNode.insertBefore(errorDiv, dropzone);
+            setTimeout(() => errorDiv.remove(), 4000);
+        }
+    });
+</script>
+{% endblock %}

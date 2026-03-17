@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table, Numeric
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table, Numeric, CheckConstraint
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -57,7 +57,9 @@ class Material(Base):
     stock = Column(Integer)
     purchases = relationship("MaterialPurchase", back_populates="material", cascade="all, delete-orphan")
     products = relationship("ProductMaterial", back_populates="material", cascade="all, delete-orphan")
-
+    material_type = Column(String, CheckConstraint("material_type IN ('filament', 'consumable')"), nullable=False)
+    gcodes = relationship("GCode", back_populates="material", cascade="all, delete-orphan")
+    
     def __repr__(self):
         return f"<Material(material_id={self.material_id}, name={self.name})>"
 
@@ -122,10 +124,11 @@ class GCode(Base):
     gcode_id = Column(Integer, primary_key=True)
     model_id = Column(Integer, ForeignKey('models.model_id'), nullable=False)
     name = Column(String)
-    material = Column(String)
+    material_id = Column(Integer, ForeignKey('materials.material_id'), nullable=False)
     print_time = Column(Integer)  # Tiempo de impresión en minutos
     weight = Column(Numeric(10, 2), nullable=False)  # Peso del material en gramos
     model = relationship("Model", back_populates="gcodes")
+    material = relationship("Material", back_populates="gcodes")
 
     def __repr__(self):
         return f"<GCode(gcode_id={self.gcode_id}, model_name={self.model.name})>"

@@ -216,7 +216,7 @@ def config_product(product_id):
         return "Product not found", 404
     
     material_controller = MaterialController(session)
-    materials = material_controller.get_all_materials()
+    materials = material_controller.get_all_consumables()
 
     show_associated_materials =[]
 
@@ -361,9 +361,10 @@ def add_material():
         name = request.form['name']
         description = request.form['description']
         stock = request.form['stock']
+        material_type = request.form['material_type']
         
         material_controller = MaterialController(session)
-        material = material_controller.add_material(name, description, stock)
+        material = material_controller.add_material(name, description, stock, material_type)
         print(f"Material added: {material}")
         
         # Redirigir a la página principal
@@ -393,11 +394,13 @@ def edit_material(material_id):
         name = request.form['name']
         description = request.form['description']
         stock = request.form['stock']
+        material_type = request.form['material_type']
         
         kwargs = {
             'name': name,
             'description': description,
-            'stock': stock
+            'stock': stock,
+            'material_type': material_type
         }
         
         updated_material = material_controller.update_material(material_id, **kwargs)
@@ -525,7 +528,6 @@ def models():
     models = model_controller.get_all_models()
     return render_template('models.html', models=models)
 
-
 @app.route('/model/add', methods=['GET', 'POST'])
 def add_model():
     if request.method == 'POST':
@@ -598,28 +600,35 @@ def delete_model(model_id):
 @app.route('/gcodes', defaults={'model_id': None})
 @app.route('/model/<int:model_id>/gcodes')
 def gcodes(model_id):
+    material_controller = MaterialController(session)
+    material_dict = {m.material_id: m.name for m in material_controller.get_all_materials()}
     if model_id:
         model_controller = ModelController(session)
         model = model_controller.get_model(model_id)
+        
+
         if not model:
             return "Model not found", 404
         gcodes = model_controller.get_model_gcodes(model_id)
     else:
         gcode_controller = GCodeController(session)
         gcodes = gcode_controller.get_all_gcodes()
-    return render_template('gcodes.html', gcodes=gcodes)
+    return render_template('gcodes.html', gcodes=gcodes, material_dict=material_dict)
 
 @app.route('/model/<int:model_id>/gcode/add', methods=['GET', 'POST'])
 def add_gcode(model_id):
     model_controller = ModelController(session)
     model = model_controller.get_model(model_id)
-    
+
+    material_controller = MaterialController(session)
+    materials = material_controller.get_all_filaments()
+
     if not model:
         return "Model not found", 404
 
     if request.method == 'POST':
         file = request.files['file']
-        material = request.form['material']
+        material_id = request.form['material_id']
 
         if file.filename == '':
             return "No file selected", 400
@@ -627,15 +636,26 @@ def add_gcode(model_id):
         gcode_content = file.read().decode('utf-8')
         
         print_time = calculate_print_time(gcode_content)
-        weight = calculate_weight(gcode_content)
-        model_controller.add_gcode_to_model(model_id, file.filename, material, print_time, weight)
-
+        print("Print time calculated: ", print_time)
+        weight = calculate_weight(gcode_content, material_controller.get_material(material_id))
+        print("Weight calculated: ", weight)
+        gcode = model_controller.add_gcode_to_model(model_id, file.filename, material_id, print_time, weight)
+        
         print(f"GCode added: {gcode}")
 
         return redirect(url_for('gcodes', model_id=model_id))
     
-    return render_template('add_gcode.html', model=model)
+    return render_template('add_gcode.html', model=model, materials=materials)
 
+@app.route('/gcode/<int:gcode_id>/delete', methods=['GET'])
+def delete_gcode(gcode_id):
+    gcode_controller = GCodeController(session)
+    if gcode_controller.delete_gcode(gcode_id):
+        print("GCode deleted.")
+    else:
+        print("GCode not found.")
+    
+    return redirect(url_for('gcodes'))
 ############################
 #   DEALER MANAGEMENT      #
 ############################
@@ -649,6 +669,9 @@ def dealers():
     for dealer in dealers:
         current_year_sales = dealer_controller.get_dealer_sales_by_year(dealer.dealer_id, current_year)
         dealer.current_year_sales = current_year_sales
+        current_year_sales_amount = sum(sale.price for sale in current_year_sales)
+        dealer.current_year_sales_amount = current_year_sales_amount
+        dealer.total_sales_amount = sum(sale.price for sale in dealer.sales)
     
     return render_template('dealers.html', dealers=dealers, current_year=current_year)
 

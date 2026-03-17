@@ -108,8 +108,8 @@ class MaterialController:
     def __init__(self, session):
         self.session = session
 
-    def add_material(self, name, description, stock=0):
-        new_material = Material(name=name, description=description, stock=stock)
+    def add_material(self, name, description, stock=0, material_type='consumable'):
+        new_material = Material(name=name, description=description, stock=stock, material_type=material_type)
         self.session.add(new_material)
         self.session.commit()
         return new_material
@@ -120,6 +120,12 @@ class MaterialController:
     def get_all_materials(self):
         return self.session.query(Material).all()
 
+    def get_all_filaments(self):
+        return self.session.query(Material).filter_by(material_type='filament').all()
+
+    def get_all_consumables(self):
+        return self.session.query(Material).filter_by(material_type='consumable').all()
+    
     def update_material(self, material_id, **kwargs):
         material = self.get_material(material_id)
         if not material:
@@ -326,11 +332,11 @@ class ModelController:
             return None
         return model.gcodes
 
-    def add_gcode_to_model(self, model_id, name, material, print_time, weight):
+    def add_gcode_to_model(self, model_id, name, material_id, print_time, weight):
         model = self.get_model(model_id)
         if not model:
             return None
-        new_gcode = GCode(model_id=model_id, name=name, material=material, print_time=print_time, weight=weight)
+        new_gcode = GCode(model_id=model_id, name=name, material_id=material_id, print_time=print_time, weight=weight)
         self.session.add(new_gcode)
         self.session.commit()
         return new_gcode
@@ -344,4 +350,12 @@ class GCodeController:
     
     def get_all_gcodes(self):
         return self.session.query(GCode).all()
+    
+    def delete_gcode(self, gcode_id):
+        gcode = self.get_gcode(gcode_id)
+        if not gcode:
+            return False
+        self.session.delete(gcode)
+        self.session.commit()
+        return True
     
