@@ -100,8 +100,6 @@ def dashboard():
     return render_template('dashboard.html', data_dashboard=data_dashboard)   
 
 
-
-
 ###########################
 #   PRODUCT MANAGEMENT    #
 ###########################
@@ -123,10 +121,9 @@ def add_product():
         name = request.form['name']
         description = request.form['description']
         sale_price = request.form['sale_price']
-        minimum_price = request.form['minimum_price']
         product_type = request.form['product_type']
         product_controller = ProductController(session)
-        product = product_controller.add_product(name, description, sale_price, minimum_price, product_type)
+        product = product_controller.add_product(name, description, sale_price, product_type)
         print(f"Product added: {product}")
         
         # Redirigir a la página principal
@@ -155,7 +152,6 @@ def duplicate_product(product_id):
         name = product.name + " (Copy)",
         description = product.description,
         sale_price = product.sale_price,
-        minimum_price = product.minimum_price,
         product_type = product.product_type
     )
 
@@ -166,6 +162,7 @@ def duplicate_product(product_id):
 
     if new_product:
         print(f"Product duplicated: {new_product}")
+        product_controller.calculate_product_cost(new_product.product_id)
     else:
         print("Error duplicating product.")
     
@@ -184,14 +181,12 @@ def edit_product(product_id):
         name = request.form['name']
         description = request.form['description']
         sale_price = request.form['sale_price']
-        minimum_price = request.form['minimum_price']
         product_type = request.form['product_type']
         
         kwargs = {
             'name': name,
             'description': description,
             'sale_price': sale_price,
-            'minimum_price': minimum_price,
             'product_type': product_type
         }
         
@@ -200,11 +195,10 @@ def edit_product(product_id):
             print(f"Product updated: {updated_product}")
         else:
             print("Product not found.")
-        
+        product_controller.calculate_product_cost(product_id)
         return redirect(url_for('products'))
-    
-    return render_template('edit_product.html', product=product)
 
+    return render_template('edit_product.html', product=product)
 
 @app.route('/product/<int:product_id>/config', methods=['GET', 'POST'])
 def config_product(product_id):
@@ -250,10 +244,60 @@ def config_product(product_id):
                         print(f"Material Associated: {mat}")
                     else:
                         print("Error ar associating materials to a product")
-
+        product_controller.calculate_product_cost(product_id)
         return redirect(url_for('products'))
     
     return render_template('config_product.html', product=product, show_materials=show_associated_materials)
+
+@app.route('/product/<int:product_id>/design', methods=['GET', 'POST'])
+def design_product(product_id):
+    product_controller = ProductController(session)
+    product = product_controller.get_product(product_id)
+
+    if not product:
+        return "Product not found", 404
+    
+    model_controller = ModelController(session)
+    models = model_controller.get_all_models()
+
+    show_associated_models =[]
+
+    for model in models:
+        a = {
+            'model_id': model.model_id,
+            'name' : model.name,
+            'description' : model.description,
+            'filepath' : model.filepath,
+            'checked' : False
+        }
+        asso = product_controller.get_associated_model(product_id, model.model_id)
+        print(asso)
+        if asso and asso.checked:
+            a['checked'] = asso.checked
+        show_associated_models.append(a)
+   
+    
+    if request.method == 'POST':
+        r = request
+        product_controller.delete_all_associated_models(product_id)
+        
+        for mod_id in r.form:
+            checked = r.form[mod_id]
+            if checked == "1":
+                matt = product_controller.get_associated_model(product_id, mod_id)
+                if matt:
+                    product_controller.update_associated_model(product_id, mod_id, True)
+                else:
+                    mod = product_controller.associate_model(product_id, mod_id, True)
+                    if mod:
+                        print(f"Model Associated: {mod}")
+                    else:
+                        print("Error ar associating models to a product")
+        print("TESEST")
+        product_controller.calculate_product_cost(product_id)
+        return redirect(url_for('products'))
+    
+    return render_template('design_product.html', product=product, show_models=show_associated_models)    
 
 @app.route('/product/manufactured', defaults={'product_id': None})
 @app.route('/product/<int:product_id>/manufactured', methods=['GET'])
@@ -597,23 +641,24 @@ def delete_model(model_id):
 ######################
 #       GCODE        #
 ######################
+
 @app.route('/gcodes', defaults={'model_id': None})
 @app.route('/model/<int:model_id>/gcodes')
 def gcodes(model_id):
     material_controller = MaterialController(session)
     material_dict = {m.material_id: m.name for m in material_controller.get_all_materials()}
+    model = None
     if model_id:
         model_controller = ModelController(session)
         model = model_controller.get_model(model_id)
         
-
         if not model:
             return "Model not found", 404
         gcodes = model_controller.get_model_gcodes(model_id)
     else:
         gcode_controller = GCodeController(session)
         gcodes = gcode_controller.get_all_gcodes()
-    return render_template('gcodes.html', gcodes=gcodes, material_dict=material_dict)
+    return render_template('gcodes.html', model=model, gcodes=gcodes, material_dict=material_dict)
 
 @app.route('/model/<int:model_id>/gcode/add', methods=['GET', 'POST'])
 def add_gcode(model_id):
@@ -656,6 +701,24 @@ def delete_gcode(gcode_id):
         print("GCode not found.")
     
     return redirect(url_for('gcodes'))
+
+@app.route('/model/<int:model_id>/gcode/<int:gcode_id>/activate', methods=['GET'])
+def set_active_gcode(model_id, gcode_id):
+    model_controller = ModelController(session)
+    model = model_controller.get_model(model_id)
+    if not model:
+        return "Model not found", 404
+
+    gcode = model_controller.get_model_gcodes(model_id)
+    if not gcode:
+        return "GCode not found", 404
+
+    model.active_gcode_id = gcode_id
+    model_controller.session.commit()
+    print(f"GCode {gcode_id} set as active for model {model_id}")
+
+    return redirect(url_for('gcodes', model_id=model_id))
+
 ############################
 #   DEALER MANAGEMENT      #
 ############################
@@ -674,7 +737,6 @@ def dealers():
         dealer.total_sales_amount = sum(sale.price for sale in dealer.sales)
     
     return render_template('dealers.html', dealers=dealers, current_year=current_year)
-
 
 @app.route('/dealer/add', methods=['GET', 'POST'])
 def add_dealer():
@@ -726,10 +788,10 @@ def edit_dealer(dealer_id):
     
     return render_template('edit_dealer.html', dealer=dealer)
 
-
 ######################
 #       SALES        #
 ######################
+
 @app.route('/sales', defaults={'dealer_id': None})
 @app.route('/dealer/<int:dealer_id>/sales')
 def sales(dealer_id):
@@ -814,7 +876,6 @@ def edit_sale(dealer_id, sale_id):
         return redirect(url_for('sales', dealer_id=dealer_id))
     
     return render_template('edit_sale_dealer.html', dealer=dealer, sale=sale)
-
 
 @app.route('/dealer/<int:dealer_id>/sale/<int:sale_id>/delete', methods=['GET'])
 def delete_sale(dealer_id, sale_id):

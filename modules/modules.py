@@ -234,7 +234,6 @@ def calculate_weight(gcode_content, filament_type=None):
                 total_extrusion += extrusion
                 prev_e = curr_e
                 
-                print(f"G{g_code} E{curr_e:.3f} → extrusión: {extrusion:.3f}mm")
     
     # Volumen (mm³) = π * r² * longitud_extrusion
     r_mm = diam / 2  # mm

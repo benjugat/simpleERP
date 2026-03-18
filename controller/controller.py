@@ -1,12 +1,12 @@
-from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial, Model, GCode
+from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial, Model, GCode, ProductModel
 
 
 class ProductController:
     def __init__(self, session):
         self.session = session
 
-    def add_product(self, name, description, sale_price, minimum_price, product_type):
-        new_product = Product(name=name, description=description, sale_price=sale_price, minimum_price=minimum_price, product_type=product_type)    
+    def add_product(self, name, description, sale_price, product_type):
+        new_product = Product(name=name, description=description, sale_price=sale_price, product_type=product_type)    
         self.session.add(new_product)
         self.session.commit()
         return new_product
@@ -69,6 +69,12 @@ class ProductController:
         self.session.commit()
         return new_association
     
+    def associate_model(self, product_id, model_id, checked):
+        new_association = ProductModel(product_id=product_id, model_id=model_id, checked=checked)
+        self.session.add(new_association)
+        self.session.commit()
+        return new_association
+
     def get_all_associated_materials(self, product_id):
         return self.session.query(ProductMaterial).filter_by(product_id=product_id).all()
 
@@ -91,6 +97,68 @@ class ProductController:
         self.session.commit()
         return association
     
+    def get_associated_model(self, product_id, model_id):
+        return self.session.query(ProductModel).filter_by(product_id=product_id).filter_by(model_id=model_id).first()
+    
+    def get_all_associated_models(self, product_id):
+        return self.session.query(ProductModel).filter_by(product_id=product_id).all()
+    
+    def delete_associated_model(self, product_id, model_id):
+        association = self.get_associated_model(product_id, model_id)
+        if not association:
+            return False
+        self.session.delete(association)
+        self.session.commit()
+        return True
+    
+    def delete_all_associated_models(self, product_id):
+        associations = self.session.query(ProductModel).filter_by(product_id=product_id).all()
+        for association in associations:
+            self.session.delete(association)
+        self.session.commit()
+        return True
+    
+    def update_associated_model(self, product_id, model_id, checked):
+        association = self.get_associated_model(product_id, model_id)
+        if not association:
+            return None
+        association.checked = checked
+        self.session.commit()
+        return association
+    
+    def calculate_product_cost(self, product_id):
+        total_cost = 0
+        price_kwh = 0.06
+        potency_ender3 = 120 #watts
+        material_controller = MaterialController(self.session)
+
+        # consumables
+        associated_materials = self.get_all_associated_materials(product_id)
+        for association in associated_materials:
+            total_cost += float(material_controller.calculate_cost_by_unity(association.material_id) * association.quantity)
+        # filament
+        associated_models = self.get_all_associated_models(product_id)
+
+        for association in associated_models:
+            model = self.session.query(Model).filter_by(model_id=association.model_id).first()
+            if model and model.active_gcode_id:
+                gcode = self.session.query(GCode).filter_by(gcode_id=model.active_gcode_id).first()
+                if gcode:
+                    print(gcode.print_time)
+                    hours = int(gcode.print_time.split(":")[0]) + int(gcode.print_time.split(":")[1])/ 60 + int(gcode.print_time.split(":")[2])/ 3600
+
+                    print_cost = hours * (potency_ender3 / 1000) * price_kwh # cost of electricity
+                    total_cost += float(material_controller.calculate_cost_by_unity(gcode.material_id)) * float(gcode.weight) + float(print_cost) # 0.05€/min of printing time
+        
+
+
+        product = self.get_product(product_id)
+        product.cost_price = total_cost
+        self.session.commit()
+        return total_cost
+    
+
+
 class ManufacturedItemController:
     def __init__(self, session):
         self.session = session
@@ -160,6 +228,14 @@ class MaterialController:
     def get_all_purchases(self):
         return self.session.query(MaterialPurchase).all()
 
+    def calculate_cost_by_unity(self, material_id):
+        purchases = self.session.query(MaterialPurchase).filter_by(material_id=material_id).all()
+        total_quantity = sum(purchase.quantity for purchase in purchases)
+        total_cost = sum(purchase.price for purchase in purchases)
+        if total_quantity == 0:
+            return 0
+        return total_cost / total_quantity
+    
     def delete_material_purchase(self, purchase_id):
         purchase = self.get_purchase(purchase_id)
         if not purchase:
@@ -340,6 +416,17 @@ class ModelController:
         self.session.add(new_gcode)
         self.session.commit()
         return new_gcode
+
+    def set_active_gcode(self, model_id, gcode_id):
+        model = self.get_model(model_id)
+        if not model:
+            return None
+        gcode = self.session.query(GCode).filter_by(gcode_id=gcode_id).first()
+        if not gcode:
+            return None
+        model.active_gcode_id = gcode_id
+        self.session.commit()
+        return gcode
 
 class GCodeController:
     def __init__(self, session):

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table, Numeric, CheckConstraint
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Table, Numeric, CheckConstraint, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -10,9 +10,10 @@ class Product(Base):
     name = Column(String)
     description = Column(String)
     sale_price = Column(Numeric(10, 2), nullable=False)
-    minimum_price = Column(Numeric(10, 2), nullable=False)
+    cost_price = Column(Numeric(10, 2))
     manufactured_items  = relationship("ManufacturedItem", back_populates="product", cascade="all, delete-orphan")  
     materials = relationship("ProductMaterial", back_populates="product", cascade="all, delete-orphan")
+    models = relationship("ProductModel", back_populates="product", cascade="all, delete-orphan")
     product_type = Column(String)
     
     def __repr__(self):
@@ -31,6 +32,17 @@ class ProductMaterial(Base):
 
     def __repr__(self):
         return f"<ProductMaterial(product_id={self.product_id}, material_id={self.material_id}, quantity={self.quantity})>"
+
+class ProductModel(Base):
+    __tablename__ = 'product_models'
+    
+    product_model_id = Column(Integer, primary_key=True)
+    product_id = Column(Integer, ForeignKey('products.product_id'), nullable=False)
+    model_id = Column(Integer, ForeignKey('models.model_id'), nullable=False)
+    checked = Column(Boolean, default=False)
+
+    product = relationship("Product", back_populates="models")
+    model = relationship("Model", back_populates="product")
 
 
 class ManufacturedItem(Base):
@@ -113,6 +125,8 @@ class Model(Base):
     description = Column(String)
     filepath = Column(String)
     gcodes = relationship("GCode", back_populates="model", cascade="all, delete-orphan")
+    active_gcode_id = Column(Integer)
+    product = relationship("ProductModel", back_populates="model", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Model(model_id={self.model_id}, name={self.name})>"
