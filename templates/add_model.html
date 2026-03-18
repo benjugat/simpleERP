@@ -150,18 +150,18 @@
     const dropzone = document.getElementById('dropzone');
     const fileinput = document.getElementById('fileinput');
     const filelist = document.getElementById('filelist');
-    const fileHidden = document.getElementById('file');
     const submitBtn = document.getElementById('submitBtn');
     
     let selectedFile = null;
     
-    // Click para selector
+    // Click en dropzone
     dropzone.addEventListener('click', () => fileinput.click());
     
-    // Drag & Drop
+    // Drag & Drop events
     ['dragenter', 'dragover', 'dragleave'].forEach(event => {
         dropzone.addEventListener(event, e => {
-            e.preventDefault(); e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
         });
     });
     
@@ -171,39 +171,45 @@
     dropzone.addEventListener('drop', e => {
         e.preventDefault();
         dropzone.classList.remove('dragover');
+        
         const files = Array.from(e.dataTransfer.files);
-        handleFile(files[0]);
+        if (files[0]) {
+            // ✅ CRÍTICO: Activa el input file con el archivo draggeado
+            const dt = new DataTransfer();
+            dt.items.add(files[0]);
+            fileinput.files = dt.files;  // ← ¡Esto envía el archivo real!
+            
+            handleFile(files[0]);  // UI feedback
+        }
     });
     
-    fileinput.addEventListener('change', e => handleFile(e.target.files[0]));
+    fileinput.addEventListener('change', e => {
+        if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
     
     function handleFile(file) {
         if (!file?.name.match(/\.(stl)$/i)) return;
         
         selectedFile = file;
-        fileHidden.value = file.name;
         
+        // ✅ Quita fileHidden.value - NO lo necesitas
         filelist.innerHTML = `
             <div class="file-item">
                 <div class="file-info">
                     <strong>${file.name}</strong>
                     <small>${formatSize(file.size)}</small>
                 </div>
-                <button type="button" class="remove-file" onclick="removeFile()" title="Quitar archivo">
-                    ❌
-                </button>
+                <button type="button" class="remove-file" onclick="removeFile()">❌</button>
             </div>
         `;
-        
         submitBtn.disabled = false;
     }
     
     function removeFile() {
         selectedFile = null;
-        fileHidden.value = '';
-        filelist.innerHTML = '<input type="hidden" name="file" id="file"><div class="no-file">📎 Selecciona o arrastra un archivo STL</div>';
+        fileinput.value = '';  // Limpia input file
+        filelist.innerHTML = '<div class="no-file">📎 Selecciona o arrastra un archivo STL</div>';
         submitBtn.disabled = true;
-        fileinput.value = '';
     }
     
     function formatSize(bytes) {
@@ -211,17 +217,6 @@
         if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
         return (bytes/1024/1024).toFixed(1) + ' MB';
     }
-    
-    // Prevenir submit sin archivo
-    document.getElementById('modelForm').addEventListener('submit', e => {
-        if (!selectedFile) {
-            e.preventDefault();
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-sm';
-            errorDiv.textContent = 'Por favor selecciona un archivo STL';
-            dropzone.parentNode.insertBefore(errorDiv, dropzone);
-            setTimeout(() => errorDiv.remove(), 4000);
-        }
-    });
 </script>
+
 {% endblock %}
