@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from datetime import datetime
 
 from model.model import Base
-from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController, ModelController, GCodeController
+from controller.controller import ProductController, MaterialController, DealerController, SaleController, ManufacturedItemController, MaterialPurchaseController, ModelController
 from modules.modules import *
 
 from dotenv import load_dotenv
@@ -13,6 +13,34 @@ import os
 from datetime import datetime
 
 app = Flask(__name__)
+
+
+def get_model_printing_values():
+    try:
+        material_id_value = request.form.get('filament_material_id', '').strip()
+        filament_material_id = int(material_id_value) if material_id_value else None
+        filament_weight_g = float(request.form.get('filament_weight_g') or 0)
+        print_hours = int(request.form.get('print_hours') or 0)
+        print_minutes = int(request.form.get('print_minutes') or 0)
+    except (TypeError, ValueError):
+        return None
+
+    if filament_weight_g < 0 or print_hours < 0 or not 0 <= print_minutes <= 59:
+        return None
+
+    material_controller = MaterialController(session)
+    if filament_material_id:
+        material = material_controller.get_material(filament_material_id)
+        if not material or material.material_type != 'filament':
+            return None
+    elif filament_weight_g > 0:
+        return None
+
+    return {
+        'filament_material_id': filament_material_id,
+        'filament_weight_g': filament_weight_g,
+        'print_time_minutes': print_hours * 60 + print_minutes
+    }
 
 
 @app.route('/favicon.ico')
@@ -110,8 +138,11 @@ def products():
 
     product_controller = ProductController(session)
     products = product_controller.get_all_products()
+    cost_breakdowns = {}
+    for product in products:
+        cost_breakdowns[product.product_id] = product_controller.calculate_product_cost_breakdown(product.product_id)
     
-    return render_template('products.html', products=products)
+    return render_template('products.html', products=products, cost_breakdowns=cost_breakdowns)
 
 @app.route('/product/add', methods=['GET', 'POST'])
 def add_product():
@@ -570,6 +601,8 @@ def edit_material_purchase(material_id, purchase_id):
 def models():
     model_controller = ModelController(session)
     models = model_controller.get_all_models()
+    for model in models:
+        model.filename = os.path.basename((model.filepath or '').replace('\\', '/'))
     return render_template('models.html', models=models)
 
 @app.route('/model/add', methods=['GET', 'POST'])
@@ -579,18 +612,22 @@ def add_model():
         # Obtener datos del formulario
         name = request.form['name']
         description = request.form['description']
+        printing_values = get_model_printing_values()
+        if printing_values is None:
+            return "Indica valores válidos de filamento y tiempo de impresión.", 400
         file = request.files['file']
         file_path = os.path.join('static/models', file.filename)
         file.save(file_path)
         
         model_controller = ModelController(session)
-        model = model_controller.add_model(name, description, file_path)
+        model = model_controller.add_model(name, description, file_path, **printing_values)
         print(f"Model added: {model}")
         
         # Redirigir a la página principal
         return redirect(url_for('models'))
     
-    return render_template('add_model.html')
+    materials = MaterialController(session).get_all_filaments()
+    return render_template('add_model.html', materials=materials)
 
 @app.route('/model/<int:model_id>/view')
 def view_model(model_id):
@@ -598,6 +635,7 @@ def view_model(model_id):
     model = model_controller.get_model(model_id)
     if not model:
         return "Model not found", 404
+    model.filename = os.path.basename((model.filepath or '').replace('\\', '/'))
     
     return render_template('view_model.html', model=model)
 
@@ -612,11 +650,15 @@ def edit_model(model_id):
     if request.method == 'POST':
         name = request.form['name']
         description = request.form['description']
+        printing_values = get_model_printing_values()
+        if printing_values is None:
+            return "Indica valores válidos de filamento y tiempo de impresión.", 400
         
         kwargs = {
             'name': name,
             'description': description
         }
+        kwargs.update(printing_values)
         
         updated_model = model_controller.update_model(model_id, **kwargs)
         if updated_model:
@@ -626,7 +668,8 @@ def edit_model(model_id):
         
         return redirect(url_for('models'))
     
-    return render_template('edit_model.html', model=model)
+    materials = MaterialController(session).get_all_filaments()
+    return render_template('edit_model.html', model=model, materials=materials)
 
 @app.route('/model/<int:model_id>/delete', methods=['GET'])
 def delete_model(model_id):
@@ -637,87 +680,6 @@ def delete_model(model_id):
         print("Model not found.")
     
     return redirect(url_for('models'))
-
-######################
-#       GCODE        #
-######################
-
-@app.route('/gcodes', defaults={'model_id': None})
-@app.route('/model/<int:model_id>/gcodes')
-def gcodes(model_id):
-    material_controller = MaterialController(session)
-    material_dict = {m.material_id: m.name for m in material_controller.get_all_materials()}
-    model = None
-    if model_id:
-        model_controller = ModelController(session)
-        model = model_controller.get_model(model_id)
-        
-        if not model:
-            return "Model not found", 404
-        gcodes = model_controller.get_model_gcodes(model_id)
-    else:
-        gcode_controller = GCodeController(session)
-        gcodes = gcode_controller.get_all_gcodes()
-    return render_template('gcodes.html', model=model, gcodes=gcodes, material_dict=material_dict)
-
-@app.route('/model/<int:model_id>/gcode/add', methods=['GET', 'POST'])
-def add_gcode(model_id):
-    model_controller = ModelController(session)
-    model = model_controller.get_model(model_id)
-
-    material_controller = MaterialController(session)
-    materials = material_controller.get_all_filaments()
-
-    if not model:
-        return "Model not found", 404
-
-    if request.method == 'POST':
-        file = request.files['file']
-        material_id = request.form['material_id']
-
-        if file.filename == '':
-            return "No file selected", 400
-        
-        gcode_content = file.read().decode('utf-8')
-        
-        print_time = calculate_print_time(gcode_content)
-        print("Print time calculated: ", print_time)
-        weight = calculate_weight(gcode_content, material_controller.get_material(material_id))
-        print("Weight calculated: ", weight)
-        gcode = model_controller.add_gcode_to_model(model_id, file.filename, material_id, print_time, weight)
-        
-        print(f"GCode added: {gcode}")
-
-        return redirect(url_for('gcodes', model_id=model_id))
-    
-    return render_template('add_gcode.html', model=model, materials=materials)
-
-@app.route('/gcode/<int:gcode_id>/delete', methods=['GET'])
-def delete_gcode(gcode_id):
-    gcode_controller = GCodeController(session)
-    if gcode_controller.delete_gcode(gcode_id):
-        print("GCode deleted.")
-    else:
-        print("GCode not found.")
-    
-    return redirect(url_for('gcodes'))
-
-@app.route('/model/<int:model_id>/gcode/<int:gcode_id>/activate', methods=['GET'])
-def set_active_gcode(model_id, gcode_id):
-    model_controller = ModelController(session)
-    model = model_controller.get_model(model_id)
-    if not model:
-        return "Model not found", 404
-
-    gcode = model_controller.get_model_gcodes(model_id)
-    if not gcode:
-        return "GCode not found", 404
-
-    model.active_gcode_id = gcode_id
-    model_controller.session.commit()
-    print(f"GCode {gcode_id} set as active for model {model_id}")
-
-    return redirect(url_for('gcodes', model_id=model_id))
 
 ############################
 #   DEALER MANAGEMENT      #
@@ -887,11 +849,68 @@ def delete_sale(dealer_id, sale_id):
     return redirect(url_for('sales', dealer_id=dealer_id))
 
 
+def legacy_print_time_to_minutes(value):
+    if value is None:
+        return 0
+    parts = str(value).split(':')
+    try:
+        if len(parts) == 3:
+            return max(0, int(parts[0]) * 60 + int(parts[1]) + (1 if int(parts[2]) >= 30 else 0))
+        if len(parts) == 2:
+            return max(0, int(parts[0]) * 60 + int(parts[1]))
+        return max(0, round(float(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def migrate_model_printing_fields(engine):
+    inspector = inspect(engine)
+    model_columns = {column['name'] for column in inspector.get_columns('models')}
+    new_model_columns = {
+        'filament_material_id': 'INTEGER REFERENCES materials(material_id)',
+        'filament_weight_g': 'NUMERIC(10, 2) DEFAULT 0',
+        'print_time_minutes': 'INTEGER DEFAULT 0'
+    }
+    should_migrate_legacy_data = bool(set(new_model_columns) - model_columns)
+    has_legacy_gcodes = inspector.has_table('gcodes') and 'active_gcode_id' in model_columns
+
+    with engine.begin() as connection:
+        for column_name, column_type in new_model_columns.items():
+            if column_name not in model_columns:
+                connection.execute(text(f'ALTER TABLE models ADD COLUMN {column_name} {column_type}'))
+
+        if should_migrate_legacy_data and has_legacy_gcodes:
+            legacy_rows = connection.execute(text('''
+                SELECT models.model_id, gcodes.material_id, gcodes.weight, gcodes.print_time
+                FROM models
+                JOIN gcodes ON gcodes.gcode_id = models.active_gcode_id
+            ''')).mappings().all()
+            for row in legacy_rows:
+                connection.execute(text('''
+                    UPDATE models
+                    SET filament_material_id = :material_id,
+                        filament_weight_g = :weight_g,
+                        print_time_minutes = :print_time_minutes
+                    WHERE model_id = :model_id
+                '''), {
+                    'material_id': row['material_id'],
+                    'weight_g': row['weight'],
+                    'print_time_minutes': legacy_print_time_to_minutes(row['print_time']),
+                    'model_id': row['model_id']
+                })
+
+
 if __name__ == '__main__':
     load_dotenv()
 
     engine = create_engine(os.getenv('DATABASE_URL'))
     Base.metadata.create_all(engine)
+    product_columns = {column['name'] for column in inspect(engine).get_columns('products')}
+    with engine.begin() as connection:
+        for column_name in ('consumables_cost', 'printing_cost'):
+            if column_name not in product_columns:
+                connection.execute(text(f'ALTER TABLE products ADD COLUMN {column_name} NUMERIC(10, 2)'))
+    migrate_model_printing_fields(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
 

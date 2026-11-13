@@ -6,7 +6,7 @@
 <span class="text-slate-400">/</span>
 <a href="/" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Inicio</a>
 <span class="text-slate-400">/</span>
-<a href="/models" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Distribuidores</a>
+<a href="/models" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">Modelos</a>
 <span class="text-slate-400">/</span>
 <span class="text-slate-700 dark:text-slate-200 font-medium">Editar</span>
 {% endblock %}
@@ -34,18 +34,52 @@
 
             <!-- Descripcion -->
             <div>
-                <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Description <span class="text-rose-500">*</span>
+                <label for="description" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Descripción
                 </label>
-                <input type="text" name="description" id="description" required
+                <input type="text" name="description" id="description"
                     class="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"
                     value="{{ model.description }}">
             </div>
 
+            <div class="rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+                <div class="mb-4">
+                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Datos de impresión</h2>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Indica el consumo manual en gramos y el tiempo estimado en horas y minutos.</p>
+                </div>
+                <div class="mb-4">
+                    <label for="filament_material_id" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Filamento</label>
+                    <select name="filament_material_id" id="filament_material_id"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                        <option value="" {% if not model.filament_material_id %}selected{% endif %}>Sin seleccionar</option>
+                        {% for material in materials %}
+                        <option value="{{ material.material_id }}" {% if model.filament_material_id == material.material_id %}selected{% endif %}>{{ material.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label for="filament_weight_g" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Consumo de filamento (g)</label>
+                        <input type="number" name="filament_weight_g" id="filament_weight_g" min="0" step="0.1" value="{{ model.filament_weight_g or 0 }}"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="print_hours" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Horas</label>
+                        <input type="number" name="print_hours" id="print_hours" min="0" step="1" value="{{ (model.print_time_minutes or 0) // 60 }}"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="print_minutes" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Minutos</label>
+                        <input type="number" name="print_minutes" id="print_minutes" min="0" max="59" step="1" value="{{ (model.print_time_minutes or 0) % 60 }}"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                </div>
+            </div>
+
             <!-- Filepath -->
             <div>
-                <label for="name" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    File Path <span class="text-rose-500">*</span>
+                <label for="filepath" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Ruta del fichero STL <span class="text-rose-500">*</span>
                 </label>
                 <input type="text" name="filepath" id="filepath" required
                     class="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-sm"

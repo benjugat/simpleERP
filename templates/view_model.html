@@ -16,9 +16,9 @@
 <div class="flex items-center justify-between">
     <div>
         <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Modelo: {{model.name}}</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{model.filepath}}</p>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ model.filename }}</p>
     </div>
-    <a href="/models" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Back</a>
+    <a href="/models" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">Volver a Modelos</a>
 </div>
 
 <br>
@@ -26,6 +26,24 @@
 
 <div class="max-w-2xl mx-auto">
     <div class="mb-6" id="viewer"></div>
+    <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800">
+        <h2 class="mb-3 text-sm font-semibold text-slate-900 dark:text-white">Datos de impresión</h2>
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div>
+                <dt class="text-slate-500 dark:text-slate-400">Filamento</dt>
+                <dd class="font-medium text-slate-800 dark:text-slate-200">{{ model.filament_material.name if model.filament_material else 'Sin asignar' }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500 dark:text-slate-400">Consumo</dt>
+                <dd class="font-medium text-slate-800 dark:text-slate-200">{{ "%.1f"|format(model.filament_weight_g or 0) }} g</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500 dark:text-slate-400">Tiempo de impresión</dt>
+                <dd class="font-medium text-slate-800 dark:text-slate-200">{{ (model.print_time_minutes or 0) // 60 }} h {{ (model.print_time_minutes or 0) % 60 }} min</dd>
+            </div>
+        </dl>
+        <a href="/model/{{ model.model_id }}/edit" class="mt-4 inline-flex text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400">Editar datos de impresión</a>
+    </div>
     
 
 

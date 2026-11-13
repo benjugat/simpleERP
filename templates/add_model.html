@@ -102,7 +102,42 @@
                 </label>
                 <input type="text" name="description" id="description"
                     class="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm transition-all"
-                    placeholder="Material: PLA | Tiempo estimado: 2h 15m">
+                    placeholder="Descripción breve del modelo">
+            </div>
+
+            <div class="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/20">
+                <div class="mb-4">
+                    <h2 class="text-sm font-semibold text-slate-800 dark:text-white">Datos de impresión</h2>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Introduce los valores estimados para tu impresora. El filamento se registra en gramos.</p>
+                </div>
+                <div class="mb-4">
+                    <label for="filament_material_id" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Filamento</label>
+                    <select name="filament_material_id" id="filament_material_id"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                        <option value="">Sin seleccionar</option>
+                        {% for material in materials %}
+                        <option value="{{ material.material_id }}">{{ material.name }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if not materials %}<p class="mt-1 text-xs text-amber-600 dark:text-amber-400">Añade primero un material de tipo filamento en Stock.</p>{% endif %}
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label for="filament_weight_g" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Consumo de filamento (g)</label>
+                        <input type="number" name="filament_weight_g" id="filament_weight_g" min="0" step="0.1" value="0"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="print_hours" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Horas</label>
+                        <input type="number" name="print_hours" id="print_hours" min="0" step="1" value="0"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="print_minutes" class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Minutos</label>
+                        <input type="number" name="print_minutes" id="print_minutes" min="0" max="59" step="1" value="0"
+                            class="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-white">
+                    </div>
+                </div>
             </div>
             
             <!-- File Upload -->

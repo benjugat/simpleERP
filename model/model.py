@@ -10,6 +10,8 @@ class Product(Base):
     name = Column(String)
     description = Column(String)
     sale_price = Column(Numeric(10, 2), nullable=False)
+    consumables_cost = Column(Numeric(10, 2), default=0)
+    printing_cost = Column(Numeric(10, 2), default=0)
     cost_price = Column(Numeric(10, 2))
     manufactured_items  = relationship("ManufacturedItem", back_populates="product", cascade="all, delete-orphan")  
     materials = relationship("ProductMaterial", back_populates="product", cascade="all, delete-orphan")
@@ -70,7 +72,6 @@ class Material(Base):
     purchases = relationship("MaterialPurchase", back_populates="material", cascade="all, delete-orphan")
     products = relationship("ProductMaterial", back_populates="material", cascade="all, delete-orphan")
     material_type = Column(String, CheckConstraint("material_type IN ('filament', 'consumable')"), nullable=False)
-    gcodes = relationship("GCode", back_populates="material", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Material(material_id={self.material_id}, name={self.name})>"
@@ -124,25 +125,13 @@ class Model(Base):
     name = Column(String)
     description = Column(String)
     filepath = Column(String)
-    gcodes = relationship("GCode", back_populates="model", cascade="all, delete-orphan")
-    active_gcode_id = Column(Integer)
+    filament_material_id = Column(Integer, ForeignKey('materials.material_id'))
+    filament_weight_g = Column(Numeric(10, 2), default=0)
+    print_time_minutes = Column(Integer, default=0)
+    filament_material = relationship("Material", foreign_keys=[filament_material_id])
     product = relationship("ProductModel", back_populates="model", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Model(model_id={self.model_id}, name={self.name})>"
     
 
-class GCode(Base):
-    __tablename__ = 'gcodes'
-    
-    gcode_id = Column(Integer, primary_key=True)
-    model_id = Column(Integer, ForeignKey('models.model_id'), nullable=False)
-    name = Column(String)
-    material_id = Column(Integer, ForeignKey('materials.material_id'), nullable=False)
-    print_time = Column(Integer)  # Tiempo de impresión en minutos
-    weight = Column(Numeric(10, 2), nullable=False)  # Peso del material en gramos
-    model = relationship("Model", back_populates="gcodes")
-    material = relationship("Material", back_populates="gcodes")
-
-    def __repr__(self):
-        return f"<GCode(gcode_id={self.gcode_id}, model_name={self.model.name})>"

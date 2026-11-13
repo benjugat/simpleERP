@@ -58,7 +58,9 @@
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Nombre</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Descripción</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Precio Venta</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Coste</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Coste consumibles</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Coste impresión</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Coste total</th>
                         <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -78,7 +80,89 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">{{ product.name }}</td>
                         <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 max-w-xs truncate">{{ product.description or '-' }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-emerald-600 dark:text-emerald-400">{{ product.sale_price }} €</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">{{ product.cost_price }} €</td>
+                        <td class="px-4 py-4 align-top">
+                            <details class="cost-dropdown">
+                                <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 shadow-sm transition hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/40">
+                                    <span>{{ "%.2f"|format(cost_breakdowns[product.product_id]['consumables_total']) }} €</span>
+                                    <span class="text-xs font-medium opacity-75">Desglose</span>
+                                    <svg class="cost-chevron h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+                                    </svg>
+                                </summary>
+                                <div class="mt-2 w-72 max-w-xs rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                    <div class="mb-2 flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-700">
+                                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Componentes</span>
+                                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Importe</span>
+                                    </div>
+                                    {% if cost_breakdowns[product.product_id]['consumables'] %}
+                                        <div class="space-y-2">
+                                            {% for component in cost_breakdowns[product.product_id]['consumables'] %}
+                                            <div class="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-700/50">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-200">{{ component['name'] }}</span>
+                                                    <span class="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">{{ "%.2f"|format(component['total_cost']) }} €</span>
+                                                </div>
+                                                <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{{ component['quantity'] }} × {{ "%.4f"|format(component['unit_cost']) }} €/unidad</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="py-3 text-center text-sm text-slate-500 dark:text-slate-400">Sin consumibles asociados</p>
+                                    {% endif %}
+                                    <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-700">
+                                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Total consumibles</span>
+                                        <span class="text-sm font-bold text-rose-600 dark:text-rose-400">{{ "%.2f"|format(cost_breakdowns[product.product_id]['consumables_total']) }} €</span>
+                                    </div>
+                                </div>
+                            </details>
+                        </td>
+                        <td class="px-4 py-4 align-top">
+                            <details class="cost-dropdown">
+                                <summary class="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-indigo-900/50 dark:bg-indigo-950/30 dark:text-indigo-300 dark:hover:bg-indigo-900/40">
+                                    <span>{{ "%.2f"|format(cost_breakdowns[product.product_id]['printing_total']) }} €</span>
+                                    <span class="text-xs font-medium opacity-75">Desglose</span>
+                                    <svg class="cost-chevron h-4 w-4 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"></path>
+                                    </svg>
+                                </summary>
+                                <div class="mt-2 w-80 max-w-xs rounded-xl border border-slate-200 bg-white p-3 text-left shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                    <div class="mb-2 flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-700">
+                                        <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Detalle de impresión</span>
+                                        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Importe</span>
+                                    </div>
+                                    {% if cost_breakdowns[product.product_id]['printing'] %}
+                                        <div class="space-y-2">
+                                            {% for component in cost_breakdowns[product.product_id]['printing'] %}
+                                            <div class="rounded-lg bg-slate-50 px-2.5 py-2 dark:bg-slate-700/50">
+                                                <div class="flex items-start justify-between gap-3">
+                                                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ component['model_name'] }}</span>
+                                                    <span class="whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-white">{{ "%.2f"|format(component['total_cost']) }} €</span>
+                                                </div>
+                                                <p class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">Tiempo estimado · {{ component['print_time'] }}</p>
+                                                <div class="mt-2 space-y-1.5 border-t border-slate-200 pt-2 text-xs dark:border-slate-600">
+                                                    <div class="flex items-start justify-between gap-2">
+                                                        <span class="text-slate-600 dark:text-slate-300">Filamento · {{ component['material_name'] }} ({{ "%.2f"|format(component['weight']) }} g)</span>
+                                                        <span class="whitespace-nowrap font-medium text-slate-800 dark:text-slate-100">{{ "%.2f"|format(component['filament_cost']) }} €</span>
+                                                    </div>
+                                                    <div class="flex items-start justify-between gap-2">
+                                                        <span class="text-slate-600 dark:text-slate-300">Electricidad</span>
+                                                        <span class="whitespace-nowrap font-medium text-slate-800 dark:text-slate-100">{{ "%.2f"|format(component['electricity_cost']) }} €</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        <p class="py-3 text-center text-sm text-slate-500 dark:text-slate-400">Sin modelos asociados</p>
+                                    {% endif %}
+                                    <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-700">
+                                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Total impresión</span>
+                                        <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400">{{ "%.2f"|format(cost_breakdowns[product.product_id]['printing_total']) }} €</span>
+                                    </div>
+                                </div>
+                            </details>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-red-600 dark:text-red-400">{{ product.cost_price or 0 }} €</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <div class="flex items-center gap-1">
                                 <a href="/product/{{ product.product_id }}/manufactured" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Ver manufacturados">
@@ -120,7 +204,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
+                        <td colspan="9" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400">
                             <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                             </svg>
@@ -134,6 +218,14 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cost-dropdown > summary { list-style: none; }
+    .cost-dropdown > summary::-webkit-details-marker { display: none; }
+    .cost-dropdown[open] .cost-chevron { transform: rotate(180deg); }
+</style>
 {% endblock %}
 
 {% block extra_js %}

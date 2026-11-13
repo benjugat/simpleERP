@@ -1,4 +1,4 @@
-from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial, Model, GCode, ProductModel
+from model.model import Material, MaterialPurchase, Product, ManufacturedItem, Dealer, Sale, ProductMaterial, Model, ProductModel
 
 
 class ProductController:
@@ -127,7 +127,14 @@ class ProductController:
         return association
     
     def calculate_product_cost(self, product_id):
-        total_cost = 0
+        breakdown = self.calculate_product_cost_breakdown(product_id)
+        return breakdown['total']
+
+    def calculate_product_cost_breakdown(self, product_id):
+        consumables_cost = 0
+        printing_cost = 0
+        consumables = []
+        printing = []
         price_kwh = 0.06
         potency_ender3 = 120 #watts
         material_controller = MaterialController(self.session)
@@ -135,27 +142,60 @@ class ProductController:
         # consumables
         associated_materials = self.get_all_associated_materials(product_id)
         for association in associated_materials:
-            total_cost += float(material_controller.calculate_cost_by_unity(association.material_id) * association.quantity)
+            material = material_controller.get_material(association.material_id)
+            unit_cost = float(material_controller.calculate_cost_by_unity(association.material_id))
+            line_cost = round(unit_cost * float(association.quantity or 0), 2)
+            consumables_cost += line_cost
+            consumables.append({
+                'name': material.name if material else f"Material {association.material_id}",
+                'quantity': association.quantity or 0,
+                'unit_cost': unit_cost,
+                'total_cost': line_cost
+            })
+
         # filament
         associated_models = self.get_all_associated_models(product_id)
 
         for association in associated_models:
             model = self.session.query(Model).filter_by(model_id=association.model_id).first()
-            if model and model.active_gcode_id:
-                gcode = self.session.query(GCode).filter_by(gcode_id=model.active_gcode_id).first()
-                if gcode:
-                    print(gcode.print_time)
-                    hours = int(gcode.print_time.split(":")[0]) + int(gcode.print_time.split(":")[1])/ 60 + int(gcode.print_time.split(":")[2])/ 3600
-
-                    print_cost = hours * (potency_ender3 / 1000) * price_kwh # cost of electricity
-                    total_cost += float(material_controller.calculate_cost_by_unity(gcode.material_id)) * float(gcode.weight) + float(print_cost) # 0.05€/min of printing time
-        
-
+            if not model:
+                continue
+            print_time_minutes = int(model.print_time_minutes or 0)
+            hours = print_time_minutes / 60
+            material = material_controller.get_material(model.filament_material_id) if model.filament_material_id else None
+            weight = float(model.filament_weight_g or 0)
+            filament_unit_cost = float(material_controller.calculate_cost_by_unity(model.filament_material_id)) if model.filament_material_id else 0
+            filament_cost = round(filament_unit_cost * weight, 2)
+            electricity_cost = round(hours * (potency_ender3 / 1000) * price_kwh, 2)
+            model_printing_cost = round(filament_cost + electricity_cost, 2)
+            printing_cost += model_printing_cost
+            print_hours, remaining_minutes = divmod(print_time_minutes, 60)
+            print_time_label = f"{print_hours} h {remaining_minutes} min" if print_hours else f"{remaining_minutes} min"
+            printing.append({
+                'model_name': model.name,
+                'print_time': print_time_label,
+                'material_name': material.name if material else 'Sin filamento seleccionado',
+                'weight': weight,
+                'filament_cost': filament_cost,
+                'electricity_cost': electricity_cost,
+                'total_cost': model_printing_cost
+            })
 
         product = self.get_product(product_id)
+        consumables_cost = round(consumables_cost, 2)
+        printing_cost = round(printing_cost, 2)
+        total_cost = round(consumables_cost + printing_cost, 2)
+        product.consumables_cost = consumables_cost
+        product.printing_cost = printing_cost
         product.cost_price = total_cost
         self.session.commit()
-        return total_cost
+        return {
+            'consumables': consumables,
+            'printing': printing,
+            'consumables_total': consumables_cost,
+            'printing_total': printing_cost,
+            'total': total_cost
+        }
     
 
 
@@ -379,8 +419,15 @@ class ModelController:
     def get_model(self, model_id):
         return self.session.query(Model).filter_by(model_id=model_id).first()
     
-    def add_model(self, name, description, filepath):
-        new_model = Model(name=name, description=description, filepath=filepath)
+    def add_model(self, name, description, filepath, filament_material_id=None, filament_weight_g=0, print_time_minutes=0):
+        new_model = Model(
+            name=name,
+            description=description,
+            filepath=filepath,
+            filament_material_id=filament_material_id,
+            filament_weight_g=filament_weight_g,
+            print_time_minutes=print_time_minutes
+        )
         self.session.add(new_model)
         self.session.commit()
         return new_model
@@ -399,50 +446,6 @@ class ModelController:
         if not model:
             return False
         self.session.delete(model)
-        self.session.commit()
-        return True
-    
-    def get_model_gcodes(self, model_id):
-        model = self.get_model(model_id)
-        if not model:
-            return None
-        return model.gcodes
-
-    def add_gcode_to_model(self, model_id, name, material_id, print_time, weight):
-        model = self.get_model(model_id)
-        if not model:
-            return None
-        new_gcode = GCode(model_id=model_id, name=name, material_id=material_id, print_time=print_time, weight=weight)
-        self.session.add(new_gcode)
-        self.session.commit()
-        return new_gcode
-
-    def set_active_gcode(self, model_id, gcode_id):
-        model = self.get_model(model_id)
-        if not model:
-            return None
-        gcode = self.session.query(GCode).filter_by(gcode_id=gcode_id).first()
-        if not gcode:
-            return None
-        model.active_gcode_id = gcode_id
-        self.session.commit()
-        return gcode
-
-class GCodeController:
-    def __init__(self, session):
-        self.session = session
-
-    def get_gcode(self, gcode_id):
-        return self.session.query(GCode).filter_by(gcode_id=gcode_id).first()
-    
-    def get_all_gcodes(self):
-        return self.session.query(GCode).all()
-    
-    def delete_gcode(self, gcode_id):
-        gcode = self.get_gcode(gcode_id)
-        if not gcode:
-            return False
-        self.session.delete(gcode)
         self.session.commit()
         return True
     
